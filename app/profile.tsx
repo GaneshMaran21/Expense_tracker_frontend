@@ -13,7 +13,9 @@ import isDark from "./utils/isDark";
 import LottieView from "lottie-react-native";
 import Button from "@/component/button";
 import { Dimensions } from "react-native";
+import {  useRouter } from "expo-router";
 const profile = () => {
+  const router = useRouter()
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
     Dimensions.get("window");
   const scrollRef = useRef<ScrollView>(null);
@@ -287,7 +289,7 @@ const profile = () => {
             </Text>
           </View>
           <View style={{ padding: 16, flex: 1, width: "100%", marginTop: 30 }}>
-            <Button title="Continue" />
+            <Button title="Continue"  onPress={()=>router.push('/screen/login_page')}/>
           </View>
         </View>
       </ScrollView>
