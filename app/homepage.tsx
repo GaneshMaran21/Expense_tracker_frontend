@@ -1,10 +1,10 @@
 import React from 'react'
 import { Image, StyleSheet, View } from 'react-native'
-import isDark from './utils/isDark'
 import themeConfig from './utils/color'
 import FastImage from "react-native-fast-image";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from "lottie-react-native";
+import isDark from './utils/isDark';
 
 const HomePage = () => {
    
