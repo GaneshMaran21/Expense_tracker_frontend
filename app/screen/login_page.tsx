@@ -1,17 +1,22 @@
 import themeConfig from '@/app/utils/color'
-import isDark from '@/app/utils/isDark'
+import useIsDark from '@/app/utils/useIsDark'
+import Button from '@/component/button'
 import InputBox from '@/component/InputBox'
+import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import {  Image, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableWithoutFeedback, View } from 'react-native'
+import {  Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const LoginPage = () => {
-    const _isDark = isDark() ? themeConfig.primaryD : themeConfig?.primaryL
+    const is_dark = useIsDark() 
+    const _useIsDark = is_dark ? themeConfig.primaryD : themeConfig?.primaryL
     const [userName,setUserName] = useState<string>("")
     const [password,setPassword] = useState<string>("")
+    const [error,setError] = useState(false)
+    const router = useRouter()
   return (
 
-    <SafeAreaView style={{flex:1,backgroundColor:_isDark,borderWidth:1,borderStyle:"solid"}}>
+    <SafeAreaView style={{flex:1,backgroundColor:_useIsDark,borderWidth:1,borderStyle:"solid"}}>
       <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS ==="ios" ? 'padding' : undefined}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View style={{flex:1,flexDirection:"column",alignItems:"center",gap:30}}>
@@ -32,9 +37,35 @@ const LoginPage = () => {
               </Text>
             </View>
       </View>
-      <View style={{ flex:1,flexDirection:"column",gap:20,alignItems:"center",marginTop:20}}>
-          <InputBox type='userName' value={userName}  setValue={setUserName}/>
-          <InputBox type='password' value={password}  setValue={setPassword}/>
+      <View style={{ flexDirection:"column",gap:20,alignItems:"center",marginTop:50,}}>
+        {error ? 
+            <View style={{display:"flex",flexDirection:"row",backgroundColor:themeConfig.errorContainer,borderRadius:12,paddingHorizontal:12,paddingVertical:8,alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <View style={{borderRadius:"50%",backgroundColor:themeConfig.errorText,height:30,width:30,alignItems:"center",justifyContent:"center",}}>
+                  <Text style={{fontSize:20,fontWeight:700,color:themeConfig.primaryL}}>!</Text>
+                </View>
+                <View>
+                  <Text style={{color:themeConfig.errorText,fontSize:16,fontWeight:400}}>
+                    Incorrect user name or password
+                  </Text>
+                </View>
+            </View>
+           : <></> }
+          <InputBox type='userName' value={userName}  setValue={setUserName} placeholder='User Name or Email'/>
+          <InputBox type='password' value={password}  setValue={setPassword} placeholder='Password'/>
+      </View>
+      <View style={{display:"flex",width:300,marginTop:30}}>
+      <Button title='Log In'/>
+      </View>
+
+      <View style={{display:"flex",justifyContent:"space-between",flexDirection:"row",marginTop:30}}>
+        <Text style={{fontSize:16,fontWeight:700,color:is_dark?themeConfig.primaryL:themeConfig.primaryD}}>
+          Don't you have an account ?
+        </Text>
+        <Pressable style={{marginLeft:4}} onPress={()=>router.push('/screen/signUpPage')}>
+          <Text style={{color:themeConfig.appPrimary,fontSize:16,fontWeight:700}}>
+            Register Here
+          </Text>
+        </Pressable>
       </View>
     </View>
           </TouchableWithoutFeedback>  

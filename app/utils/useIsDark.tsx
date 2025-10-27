@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Appearance, useColorScheme } from "react-native";
 
-const isDark = ()=>{
+const useIsDark = ()=>{
 
     const colorScheme = useColorScheme(); 
     // 'light' | 'dark' | null
@@ -15,10 +15,10 @@ const isDark = ()=>{
     
     //     return () => subscription.remove(); // cleanup
     //   }, []);
- console.log(colorScheme,"isDark or light")
+ console.log(colorScheme,"useIsDark or light")
  return colorScheme ==="dark" 
       
 }
 
-export default isDark
+export default useIsDark
 

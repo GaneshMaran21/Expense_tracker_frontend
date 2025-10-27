@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import { Button, Text, View } from "react-native";
 import themeConfig from "../app/utils/color";
-import isDark from "../app/utils/isDark";
+import useIsDark from "../app/utils/useIsDark";
 import HomePage from "./homepage";
 import { useEffect, useState } from "react";
 export default function Index() {
   const router = useRouter()
-  const is_Dark = isDark()
+  const is_Dark = useIsDark()
   const [isFirstTime,setIsFirstTime] = useState(true)
 useEffect(() => {
     const timer = setTimeout(() => {

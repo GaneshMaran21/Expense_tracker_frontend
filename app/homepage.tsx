@@ -4,7 +4,7 @@ import themeConfig from './utils/color'
 import FastImage from "react-native-fast-image";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from "lottie-react-native";
-import isDark from './utils/isDark';
+import useIsDark from './utils/useIsDark';
 
 const HomePage = () => {
    
@@ -13,7 +13,7 @@ const HomePage = () => {
 
    
    <View style={{ flex:1,
-        backgroundColor:isDark()? themeConfig.primaryD : themeConfig.primaryL,height:200,width:"100%",justifyContent:"center",alignItems:"center"
+        backgroundColor:useIsDark()? themeConfig.primaryD : themeConfig.primaryL,height:200,width:"100%",justifyContent:"center",alignItems:"center"
        }}>
         {/* <View style={{flex:1,borderColor:"red",borderRadius:1, borderStyle:"solid",borderWidth:1,width:300}}> */}
 
