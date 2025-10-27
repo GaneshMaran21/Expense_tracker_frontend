@@ -9,11 +9,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import themeConfig from "./utils/color";
-import isDark from "./utils/isDark";
+// import useIsDark from "./utils/useIsDark";
 import LottieView from "lottie-react-native";
 import Button from "@/component/button";
 import { Dimensions } from "react-native";
 import {  useRouter } from "expo-router";
+import useIsDark from "./utils/useIsDark";
+import * as Haptics from 'expo-haptics';
 const profile = () => {
   const router = useRouter()
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
@@ -21,6 +23,7 @@ const profile = () => {
   const scrollRef = useRef<ScrollView>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const goToNextPage = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     const nextPage = currentPage + 1;
     if (nextPage < 3) {
       // 3 pages total
@@ -37,11 +40,11 @@ const profile = () => {
     const page = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
     setCurrentPage(page);
   };
-  // const un_color = isDark()?themeConfig.primaryL : themeConfig.primaryD
+  // const un_color = useIsDark()?themeConfig.primaryL : themeConfig.primaryD
   return (
     <SafeAreaView
       style={{
-        backgroundColor: isDark() ? themeConfig.primaryD : themeConfig.primaryL,
+        backgroundColor: useIsDark() ? themeConfig.primaryD : themeConfig.primaryL,
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
@@ -115,7 +118,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
               }}
             >
               Note Down Expenses
@@ -125,7 +128,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
               }}
             >
               Daily Note Your Expenses to help manage money
@@ -193,7 +196,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
                 textAlign:"center"
               }}
             >
@@ -204,7 +207,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
               }}
             >
              Get your notifications or alert when you do the over expenses
@@ -272,7 +275,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
               }}
             >
              Easy to Track and Analize
@@ -282,7 +285,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: isDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
               }}
             >
               Tracking your expense help make sure you don't overspend
