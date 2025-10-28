@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Button, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import themeConfig from "../utils/color";
 import useIsDark from "../utils/useIsDark";
 import InputBox from "@/component/InputBox";
@@ -8,12 +8,14 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import * as Haptics from 'expo-haptics';
 const SignUpPage = () => {
-  const is_dark = useIsDark();
+  const is_dark = useIsDark()
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState<Date>();
+  const [errorFields,setErrorFields] = useState<any>({})
+  console.log(errorFields,"error")
   console.log(showPicker);
   const onChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (event.type === "set" && selectedDate) {
@@ -24,13 +26,45 @@ const SignUpPage = () => {
 
   const handleSubmit=()=>{
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    console.log(validation(),"vALID")
+   if(validation()){
+     
+   }
+   else{
+    console.log("validation failed")
+   }
+  }
+
+  const validation = ()=>{
+    let errors:any = {}
+    let hasError = false
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if(userName.length<2 || !userName.length){
+      errors.name="User Name must be more than 2 characters"
+      hasError=true
+    }
+    if(!password.length || !passwordRegex.test(password)){
+      errors.password="Password must be at least 8 characters long, contain at least one uppercase letter, one number, and one special character."
+      hasError=true
+    }
+    if(!email.length || !emailRegex.test(email)){
+      errors.email = "please enter valid email address"
+      hasError=true
+    }
+    if(!dateOfBirth){
+      errors.dateOfBirth="please select the date of birth"
+      hasError=true
+    }
+    setErrorFields(errors)
+    return hasError ? false : true
   }
 
   return (
     <ScrollView
       style={{
         flex: 1,
-        backgroundColor: is_dark ? themeConfig.primaryD : themeConfig.primaryL,
+        backgroundColor: themeConfig.primary,
       }}
     >
       <View
@@ -38,26 +72,57 @@ const SignUpPage = () => {
           display: "flex",
           width: "100%",
           flexDirection: "column",
-          gap: 30,
+          gap: 10,
           justifyContent: "center",
           alignItems: "center",
           marginTop: 50,
         }}
       >
+        <View style={styles.errorBox}>
         <InputBox
           value={userName}
           setValue={setUserName}
-          placeholder="User Name"
+          placeholder={"User Name"}
+          onFocus={()=>setErrorFields((prev:{})=>({
+            ...prev,
+            name:""
+          }))}
         />
+        <Text style={styles.errorText}>
+          {errorFields?.hasOwnProperty('name') ? errorFields?.['name']:""}
+        </Text>
+        </View>
+        <View style={styles.errorBox}>
+       
         <InputBox
           value={password}
           setValue={setPassword}
           placeholder="Password"
+            onFocus={()=>setErrorFields((prev:{})=>({
+            ...prev,
+            password:""
+          }))}
         />
-        <InputBox value={email} setValue={setEmail} placeholder="Email" />
+        <Text style={styles.errorText}>
+          {errorFields?.hasOwnProperty('password') ? errorFields?.['password']:""}
+        </Text>
+           
+        </View>
+        <View style={styles.errorBox}>
 
+        <InputBox value={email} setValue={setEmail} placeholder="Email" 
+          onFocus={()=>setErrorFields((prev:{})=>({
+            ...prev,
+            email:""
+          }))}
+        />
+        <Text style={styles.errorText}>
+          {errorFields?.hasOwnProperty('email') ? errorFields?.['email']:""}
+        </Text>
+        </View>
+        <View style={styles.errorBox}>
         <Pressable
-          onPress={() => setShowPicker(true)}
+          onPress={() => {setShowPicker(true);setErrorFields({})}}
           style={{
             padding: 16,
             borderWidth: 2,
@@ -72,7 +137,7 @@ const SignUpPage = () => {
               style={{
                 fontSize: 18,
                 fontWeight: 600,
-                color: is_dark ? themeConfig.primaryL : themeConfig.appPrimary,
+                color: themeConfig.textPrimary,
               }}
             >
               {dateOfBirth?.toLocaleDateString("en-GB", {
@@ -87,6 +152,10 @@ const SignUpPage = () => {
             </Text>
           )}
         </Pressable>
+          <Text style={styles.errorText}>
+          {errorFields?.hasOwnProperty('dateOfBirth') ? errorFields?.['dateOfBirth']:""}
+        </Text>
+        </View>
         {showPicker && (
           <View
             style={{
@@ -109,7 +178,7 @@ const SignUpPage = () => {
   
         {!showPicker && 
       <TouchableOpacity style={{height:50,width:300,justifyContent:"center",alignItems:"center",backgroundColor:themeConfig?.appPrimary,borderRadius:12,padding:12,shadowColor:'rgb(51, 122, 188)',shadowOffset:{width:0,height:4},shadowOpacity:2,shadowRadius:5,elevation: 3,marginTop:40 }} onPress={handleSubmit}>
-        <Text style={{fontSize:20,fontWeight:600,color:themeConfig.primaryL }}>
+        <Text style={{fontSize:20,fontWeight:600,color:themeConfig.primarylight }}>
           Sign Up
         </Text>
       </TouchableOpacity>
@@ -120,3 +189,16 @@ const SignUpPage = () => {
 };
 
 export default SignUpPage;
+
+export const styles = StyleSheet.create({
+    errorBox:{
+        flexDirection:"column",
+        gap:6,
+       width:300
+    },
+    errorText:{
+      color:themeConfig.errorText,
+      fontWeight:500,
+      fontSize:16
+    }
+})

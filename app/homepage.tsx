@@ -13,7 +13,7 @@ const HomePage = () => {
 
    
    <View style={{ flex:1,
-        backgroundColor:useIsDark()? themeConfig.primaryD : themeConfig.primaryL,height:200,width:"100%",justifyContent:"center",alignItems:"center"
+        backgroundColor:themeConfig.primary,height:200,width:"100%",justifyContent:"center",alignItems:"center"
        }}>
         {/* <View style={{flex:1,borderColor:"red",borderRadius:1, borderStyle:"solid",borderWidth:1,width:300}}> */}
 

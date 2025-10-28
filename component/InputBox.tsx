@@ -8,11 +8,12 @@ interface InputBoxProps {
   value: string;
   setValue: (text: string) => void;
   placeholder?: string;
+  onFocus?:()=>void
 }
 
-const InputBox = ({ type, value, setValue, placeholder }: InputBoxProps) => {
+const InputBox = ({ type, value, setValue, placeholder,onFocus }: InputBoxProps) => {
   const _useIsDarkMode = useIsDark()  
-  const _useIsDark = _useIsDarkMode  ? themeConfig.primaryD : themeConfig.primaryL;
+  const _useIsDark = _useIsDarkMode  ? themeConfig.primaryDark : themeConfig.primarylight;
 
   const [highlight, setHighlight] = useState<number>(0);
     const [isPassword,setIsPassword] = useState(type === "password")
@@ -29,7 +30,7 @@ const InputBox = ({ type, value, setValue, placeholder }: InputBoxProps) => {
             backgroundColor: _useIsDark,
             borderColor:
               (isUser && highlight === 1) || (type==="password" && highlight === 2)
-                ? _useIsDarkMode ? themeConfig.primaryL :themeConfig.inputBox
+                ? _useIsDarkMode ? themeConfig.primarylight :themeConfig.inputBox
                 : themeConfig.appPrimary,
           },
         ]}
@@ -38,7 +39,7 @@ const InputBox = ({ type, value, setValue, placeholder }: InputBoxProps) => {
         {type ==="password" && <Image source={require("../assets/icon/password.png")} />}
         <TextInput
           style={[styles.textInput,{
-            color :_useIsDarkMode ? themeConfig.primaryL : themeConfig.appPrimary,
+            color :_useIsDarkMode ? themeConfig.primarylight : themeConfig.appPrimary,
             letterSpacing:1,
             fontWeight:500
           }]}
@@ -46,7 +47,7 @@ const InputBox = ({ type, value, setValue, placeholder }: InputBoxProps) => {
           onChangeText={setValue}
           placeholder={placeholder}
           secureTextEntry={isPassword}
-          onFocus={() => setHighlight(isUser ? 1 : 2)}
+          onFocus={() => {setHighlight(isUser ? 1 : 2);onFocus && onFocus()}}
           onBlur={() => setHighlight(0)}
           placeholderTextColor={_useIsDarkMode?"#555":"#ccc"}
           

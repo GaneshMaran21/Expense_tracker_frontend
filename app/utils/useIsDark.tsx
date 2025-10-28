@@ -15,7 +15,7 @@ const useIsDark = ()=>{
     
     //     return () => subscription.remove(); // cleanup
     //   }, []);
- console.log(colorScheme,"useIsDark or light")
+ 
  return colorScheme ==="dark" 
       
 }
