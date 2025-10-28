@@ -4,25 +4,40 @@ import themeConfig from "../app/utils/color";
 import useIsDark from "../app/utils/useIsDark";
 import HomePage from "./homepage";
 import { useEffect, useState } from "react";
+import { getSecureItem, setSecureItem } from "./utils/storageUtils";
 export default function Index() {
   const router = useRouter()
-  const is_Dark = useIsDark()
   const [isFirstTime,setIsFirstTime] = useState(true)
-useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/profile');
-      setIsFirstTime(false);
-    }, 5000);
+  async function getItemFromStorage(key:string) {
+     return await getSecureItem("accessToken")
+  }
 
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const item = await getItemFromStorage("accessToken");
+        if (item) {
+          console.log("Token found:", item);
+           router.push("/profile");
+        } else {
+          console.log("No token found. Setting one...");
+          await setSecureItem("accessToken", "hello");
+        }
+      } catch (error) {
+        console.error("Error checking token:", error);
+      }
+    }, 5000); // waits 5 seconds
+
+    // Cleanup if component unmounts before timeout
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
   return (
     <View
       style={{
         flex: 1,
         // justifyContent: "center",
         // alignItems: "center",
-        backgroundColor:is_Dark?themeConfig.primaryD:themeConfig.primaryL
+        backgroundColor:themeConfig.primary
       }}
     >
       {/* <Text>Edit app/index.tsx to edit this screen.</Text> */}

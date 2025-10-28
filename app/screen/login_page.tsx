@@ -8,15 +8,13 @@ import {  Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, Touc
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const LoginPage = () => {
-    const is_dark = useIsDark() 
-    const _useIsDark = is_dark ? themeConfig.primaryD : themeConfig?.primaryL
     const [userName,setUserName] = useState<string>("")
     const [password,setPassword] = useState<string>("")
     const [error,setError] = useState(false)
     const router = useRouter()
   return (
 
-    <SafeAreaView style={{flex:1,backgroundColor:_useIsDark,borderWidth:1,borderStyle:"solid"}}>
+    <SafeAreaView style={{flex:1,backgroundColor:themeConfig.primary,borderWidth:1,borderStyle:"solid"}}>
       <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS ==="ios" ? 'padding' : undefined}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View style={{flex:1,flexDirection:"column",alignItems:"center",gap:30}}>
@@ -41,7 +39,7 @@ const LoginPage = () => {
         {error ? 
             <View style={{display:"flex",flexDirection:"row",backgroundColor:themeConfig.errorContainer,borderRadius:12,paddingHorizontal:12,paddingVertical:8,alignItems:"center",justifyContent:"space-between",gap:12}}>
                 <View style={{borderRadius:"50%",backgroundColor:themeConfig.errorText,height:30,width:30,alignItems:"center",justifyContent:"center",}}>
-                  <Text style={{fontSize:20,fontWeight:700,color:themeConfig.primaryL}}>!</Text>
+                  <Text style={{fontSize:20,fontWeight:700,color:themeConfig.primarylight}}>!</Text>
                 </View>
                 <View>
                   <Text style={{color:themeConfig.errorText,fontSize:16,fontWeight:400}}>
@@ -58,7 +56,7 @@ const LoginPage = () => {
       </View>
 
       <View style={{display:"flex",justifyContent:"space-between",flexDirection:"row",marginTop:30}}>
-        <Text style={{fontSize:16,fontWeight:700,color:is_dark?themeConfig.primaryL:themeConfig.primaryD}}>
+        <Text style={{fontSize:16,fontWeight:700,color:themeConfig.textPrimary}}>
           Don't you have an account ?
         </Text>
         <Pressable style={{marginLeft:4}} onPress={()=>router.push('/screen/signUpPage')}>

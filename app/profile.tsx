@@ -44,7 +44,7 @@ const profile = () => {
   return (
     <SafeAreaView
       style={{
-        backgroundColor: useIsDark() ? themeConfig.primaryD : themeConfig.primaryL,
+        backgroundColor: themeConfig.primary,
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
@@ -118,7 +118,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: themeConfig.textPrimary,
               }}
             >
               Note Down Expenses
@@ -128,7 +128,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: themeConfig.textPrimary,
               }}
             >
               Daily Note Your Expenses to help manage money
@@ -196,7 +196,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: themeConfig.primary,
                 textAlign:"center"
               }}
             >
@@ -207,7 +207,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: themeConfig.textPrimary,
               }}
             >
              Get your notifications or alert when you do the over expenses
@@ -275,7 +275,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color:themeConfig.textPrimary,
               }}
             >
              Easy to Track and Analize
@@ -285,7 +285,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: useIsDark() ? themeConfig.primaryL : themeConfig.primaryD,
+                color: themeConfig.textPrimary,
               }}
             >
               Tracking your expense help make sure you don't overspend
