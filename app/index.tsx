@@ -5,6 +5,7 @@ import useIsDark from "../app/utils/useIsDark";
 import HomePage from "./homepage";
 import { useEffect, useState } from "react";
 import { getSecureItem, setSecureItem } from "./utils/storageUtils";
+import { useDispatch } from "react-redux";
 export default function Index() {
   const router = useRouter()
   const [isFirstTime,setIsFirstTime] = useState(true)
