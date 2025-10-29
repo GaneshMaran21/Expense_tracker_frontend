@@ -1,3 +1,4 @@
+import { HapticTab } from '@/app-example/components/haptic-tab'
 import themeConfig from '@/app/utils/color'
 import useIsDark from '@/app/utils/useIsDark'
 import Button from '@/component/button'
@@ -6,12 +7,47 @@ import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import {  Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-
+import * as Haptics from 'expo-haptics';
+import { useDispatch } from 'react-redux'
 const LoginPage = () => {
     const [userName,setUserName] = useState<string>("")
     const [password,setPassword] = useState<string>("")
     const [error,setError] = useState(false)
+    const [fieldError,setFieldError] = useState<any>({})
     const router = useRouter()
+    const dispatch = useDispatch()
+    const validate =()=>{
+      let hasError = false
+      if(!userName || userName.length<=2){
+        fieldError.userName = "userName should have atleast 2 characters"
+        hasError = true
+      }
+      if(!password || password.length<=2){
+        fieldError.password="Password is required"
+        hasError = true
+      }
+      return hasError
+    }
+
+    const loginSuccess = ()=>{
+      router.push('/screen/logOut')
+    }
+    const handleSubmit =()=>{
+      debugger
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const callback = {
+        success:loginSuccess()
+      }
+      if(!validate()){
+        const payload={
+          user_name:userName,
+          password:password
+        }
+        dispatch({type:"signin",payload})
+      }
+
+     }
+
   return (
 
     <SafeAreaView style={{flex:1,backgroundColor:themeConfig.primary,borderWidth:1,borderStyle:"solid"}}>
@@ -52,7 +88,7 @@ const LoginPage = () => {
           <InputBox type='password' value={password}  setValue={setPassword} placeholder='Password'/>
       </View>
       <View style={{display:"flex",width:300,marginTop:30}}>
-      <Button title='Log In'/>
+      <Button title='Log In' onPress={handleSubmit}/>
       </View>
 
       <View style={{display:"flex",justifyContent:"space-between",flexDirection:"row",marginTop:30}}>
