@@ -10,19 +10,22 @@ export default function Index() {
   const router = useRouter()
   const [isFirstTime,setIsFirstTime] = useState(true)
   async function getItemFromStorage(key:string) {
-     return await getSecureItem("accessToken")
+     return await getSecureItem(key)
   }
+  const dispatch = useDispatch()
 
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
         const item = await getItemFromStorage("accessToken");
-        if (item) {
-          console.log("Token found:", item);
-           router.push("/profile");
+        const user_name = await getItemFromStorage('user_name')
+        if (item && user_name) {
+          console.log("Token and user found  :", item,user_name);
+          router.push('../screen/logOut')
+          // router.push("/profile");
         } else {
-          console.log("No token found. Setting one...");
-          await setSecureItem("accessToken", "hello");
+          console.log("No token found. Sign in or sign up");
+            router.push("/profile");
         }
       } catch (error) {
         console.error("Error checking token:", error);

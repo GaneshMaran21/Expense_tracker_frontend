@@ -23,9 +23,13 @@ function* userSignin(payload:any):Generator<any, void,any>{
         if(response){
             callback.success()
         }
+        else{
+
+        }
     }
-    catch(E){
+    catch(E:any){
         console.log(E,"errorr")
+        callback.failure(E?.data)
     }
 }
 
