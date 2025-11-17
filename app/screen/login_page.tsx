@@ -5,7 +5,7 @@ import Button from '@/component/button'
 import InputBox from '@/component/InputBox'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import {  Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native'
+import {  Alert, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics';
 import { useDispatch } from 'react-redux'
@@ -32,16 +32,30 @@ const LoginPage = () => {
     const loginSuccess = ()=>{
       router.push('/screen/logOut')
     }
+    const loginFailure = (error:any)=>{
+      console.log(error ,"what error")
+      // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+  Alert.alert('Invalid Credentials', `${error?.message }`, [
+      {
+        text: 'Cancel',
+        onPress: () => console.log('Cancel Pressed'),
+        style: 'cancel',
+      },
+      {text: 'OK', onPress: () => console.log('OK Pressed')},
+    ]);
+    }
     const handleSubmit =()=>{
       debugger
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const callback = {
-        success:loginSuccess()
+        success:loginSuccess,
+        failure:loginFailure
       }
       if(!validate()){
         const payload={
           user_name:userName,
-          password:password
+          password:password,
+          callback:callback
         }
         dispatch({type:"signin",payload})
       }

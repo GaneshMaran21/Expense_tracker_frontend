@@ -5,12 +5,14 @@ interface UserState {
   data: any;
   loading: boolean;
   error: string | null;
+  userData:[]
 }
 
 const initialState: UserState = {
   data: null,
   loading: false,
   error: null,
+  userData:[]
 };
 
 const userSlice = createSlice({
@@ -28,6 +30,9 @@ const userSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+    fetchUserData:(state,action:PayloadAction<any>)=>{
+      state.userData = action.payload
+    }
   },
 });
 
