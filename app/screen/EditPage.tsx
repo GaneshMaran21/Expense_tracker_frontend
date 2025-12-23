@@ -1,21 +1,23 @@
-import React, { useState, useRef } from 'react'
-import { Text, View, StyleSheet, ScrollView, Pressable, Alert, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import React, { useState, useRef, useEffect } from 'react'
+import { Text, View, StyleSheet, ScrollView, Pressable, Alert, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ActivityIndicator } from 'react-native'
 import { useTheme } from '../utils/color'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import useIsDark from '../utils/useIsDark'
 import { useDispatch } from 'react-redux'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { expenseCategories, paymentMethods } from '../utils/expenseCategories'
 import * as Haptics from 'expo-haptics'
 import Button from '@/component/button'
 
-const MainPage = () => {
+const EditPage = () => {
   const theme = useTheme()
   const isDark = useIsDark()
   const dispatch = useDispatch()
   const router = useRouter()
+  const params = useLocalSearchParams()
+  const expenseId = params.id as string
   
   // Form state
   const [amount, setAmount] = useState('')
@@ -26,10 +28,105 @@ const MainPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<{ id: string; name: string } | null>(null)
   const [tags, setTags] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingExpense, setIsLoadingExpense] = useState(true)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [errors, setErrors] = useState<any>({})
   const scrollViewRef = useRef<ScrollView>(null)
+  
+  // Fetch expense data on mount
+  useEffect(() => {
+    if (expenseId) {
+      fetchExpenseData()
+    } else {
+      Alert.alert('Error', 'Expense ID is missing', [
+        { text: 'OK', onPress: () => router.back() }
+      ])
+    }
+  }, [expenseId])
+  
+  const fetchExpenseData = () => {
+    setIsLoadingExpense(true)
+    const callback = {
+      success: (data: any) => {
+        setIsLoadingExpense(false)
+        // Pre-fill form with expense data
+        setAmount(data.amount?.toString() || '')
+        
+        // Set category
+        if (data.category_id) {
+          const foundCategory = expenseCategories.find(c => c.id === data.category_id)
+          if (foundCategory) {
+            setCategory({ id: foundCategory.id, name: foundCategory.name })
+          } else {
+            setCategory({ id: data.category_id, name: data.category_name || data.category_id })
+          }
+        }
+        
+        // Set date - convert from IST string to Date
+        if (data.date) {
+          // Backend returns date as IST string (e.g., "2025-12-23T00:00:00.000+05:30")
+          // Parse it correctly
+          const dateStr = data.date
+          // If it has +05:30, it's IST, so we can parse it directly
+          const parsedDate = new Date(dateStr)
+          if (!isNaN(parsedDate.getTime())) {
+            setDate(parsedDate)
+          }
+        }
+        
+        // Set description
+        setDescription(data.description || '')
+        
+        // Set payment method
+        if (data.payment_method) {
+          const foundPayment = paymentMethods.find(p => p.id === data.payment_method)
+          if (foundPayment) {
+            setPaymentMethod({ id: foundPayment.id, name: foundPayment.name })
+          } else {
+            setPaymentMethod({ id: data.payment_method, name: data.payment_method })
+          }
+        }
+        
+        // Set tags
+        if (data.tags && Array.isArray(data.tags)) {
+          setTags(data.tags.join(', '))
+        } else if (data.tags) {
+          setTags(data.tags)
+        }
+      },
+      failure: (error: any) => {
+        setIsLoadingExpense(false)
+        const isUnauthorized = error?.status === 401 || 
+                              error?.data?.status === 401 || 
+                              error?.data?.requiresLogin ||
+                              (error?.response && error?.response?.status === 401)
+        
+        setTimeout(() => {
+          if (isUnauthorized) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+            Alert.alert(
+              'Session Expired',
+              'Your session has expired. Please login again.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => router.push('/profile')
+                }
+              ],
+              { cancelable: false }
+            )
+          } else {
+            Alert.alert('Error', error?.data?.message || error?.message || 'Failed to load expense. Please try again.', [
+              { text: 'OK', onPress: () => router.back() }
+            ])
+          }
+        }, 100)
+      }
+    }
+    
+    dispatch({ type: 'getExpense', payload: { id: expenseId, callback } })
+  }
   
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -37,14 +134,11 @@ const MainPage = () => {
   
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
-      // On Android, hide picker immediately
       setShowDatePicker(false)
-      
       if (event.type === 'set' && selectedDate) {
         setDate(selectedDate)
       }
     } else {
-      // On iOS, update date but keep picker open until Done is pressed
       if (event.type === 'set' && selectedDate) {
         setDate(selectedDate)
       }
@@ -56,8 +150,6 @@ const MainPage = () => {
   }
   
   const handleDescriptionFocus = () => {
-    // Scroll to show description field above keyboard
-    // Use multiple timeouts to ensure keyboard is fully open
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: 450, animated: true })
     }, 100)
@@ -92,29 +184,20 @@ const MainPage = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     setIsLoading(true)
     
-    // The date field should represent the date of the expense (start of that day in IST)
-    // Get the date components from the selected date (local timezone)
+    // Date handling - same as MainPage
     const selectedDate = new Date(date)
-    // Use local date components to ensure we get the correct date the user selected
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
     const day = selectedDate.getDate()
     
-    // Create a date at midnight IST (00:00:00 IST) for the selected date
-    // IST is UTC+5:30, so midnight IST on Dec 23 = 6:30 PM UTC on Dec 22
-    // To get this, we create UTC midnight for the selected date, then subtract 5:30 hours
-    // Example: User selects Dec 23
-    //   - UTC midnight Dec 23: 2025-12-23T00:00:00.000Z
-    //   - Subtract 5:30 hours: 2025-12-22T18:30:00.000Z (this is midnight IST on Dec 23)
     const utcMidnight = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
-    // Subtract 5:30 hours (330 minutes) to get the UTC time that represents midnight IST
     const istMidnightAsUTC = new Date(utcMidnight.getTime() - (5 * 60 + 30) * 60 * 1000)
     
     const expenseData = {
       amount: parseFloat(amount),
       category_id: category!.id,
       category_name: category!.name,
-      date: istMidnightAsUTC.toISOString(), // Send as UTC equivalent of midnight IST
+      date: istMidnightAsUTC.toISOString(),
       description: description.trim() || undefined,
       payment_method: paymentMethod!.id,
       tags: tags.split(',').map(t => t.trim()).filter(t => t.length > 0),
@@ -124,20 +207,11 @@ const MainPage = () => {
       success: (data: any) => {
         setIsLoading(false)
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-        Alert.alert('Success', 'Expense added successfully!', [
+        Alert.alert('Success', 'Expense updated successfully!', [
           {
             text: 'OK',
             onPress: () => {
-              // Reset form
-              setAmount('')
-              setCategory(null)
-              setDate(new Date())
-              setDescription('')
-              setPaymentMethod(null)
-              setTags('')
-              setErrors({})
-              // Navigate to list or home
-              router.push('/screen/ListPage')
+              router.back() // Navigate back to ListPage
             }
           }
         ])
@@ -145,15 +219,12 @@ const MainPage = () => {
       failure: (error: any) => {
         setIsLoading(false)
         
-        // Check for 401 status in multiple possible locations
         const isUnauthorized = error?.status === 401 || 
                               error?.data?.status === 401 || 
                               error?.data?.requiresLogin ||
                               (error?.response && error?.response?.status === 401)
         
-        // Use setTimeout to ensure state updates complete before showing alert
         setTimeout(() => {
-          // Handle 401 - show alert then redirect
           if (isUnauthorized) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
             Alert.alert(
@@ -162,39 +233,38 @@ const MainPage = () => {
               [
                 {
                   text: 'OK',
-                  onPress: () => {
-                    // Navigate to profile after user clicks OK
-                    router.push('/profile')
-                  }
+                  onPress: () => router.push('/profile')
                 }
               ],
-              { cancelable: false } // Prevent dismissing without clicking OK
+              { cancelable: false }
             )
           } else {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-            Alert.alert('Error', error?.data?.message || error?.message || 'Failed to add expense. Please try again.')
+            Alert.alert('Error', error?.data?.message || error?.message || 'Failed to update expense. Please try again.')
           }
         }, 100)
       }
     }
     
-    dispatch({ type: 'createExpense', payload: { data: expenseData, callback } })
+    dispatch({ type: 'updateExpense', payload: { id: expenseId, data: expenseData, callback } })
   }
   
+  // Render selection button helper
   const renderSelectionButton = (
     label: string,
     value: string | null,
     onPress: () => void,
-    error?: string,
-    icon?: string
+    icon?: string,
+    error?: string
   ) => {
     return (
       <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: theme.textPrimary }]}>
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: theme.textPrimary }]}>{label}</Text>
         <Pressable
-          onPress={onPress}
+          onPress={() => {
+            Keyboard.dismiss()
+            onPress()
+          }}
           style={[
             styles.selectionButton,
             {
@@ -236,6 +306,19 @@ const MainPage = () => {
     )
   }
   
+  if (isLoadingExpense) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.appPrimary} />
+          <Text style={[styles.loadingText, { color: theme.textPrimary }]}>
+            Loading expense...
+          </Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+  
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
@@ -254,7 +337,7 @@ const MainPage = () => {
           >
         <View style={styles.content}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
-            Add Expense
+            Edit Expense
           </Text>
           
           {/* Amount - Redesigned */}
@@ -301,28 +384,21 @@ const MainPage = () => {
             </View>
           </View>
           
-          {/* Category */}
+          {/* Category Selection */}
           {renderSelectionButton(
-            'Category *',
+            'Category',
             category?.name || null,
-            () => {
-              Keyboard.dismiss()
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-              setShowCategoryModal(true)
-            },
-            errors.category,
-            category ? expenseCategories.find(c => c.id === category.id)?.icon : 'pricetag'
+            () => setShowCategoryModal(true),
+            category ? expenseCategories.find(c => c.id === category.id)?.icon : 'pricetag-outline',
+            errors.category
           )}
           
-          {/* Date - Date Picker */}
+          {/* Date Selection */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.label, { color: theme.textPrimary }]}>
-              Date
-            </Text>
+            <Text style={[styles.label, { color: theme.textPrimary }]}>Date</Text>
             <Pressable
               onPress={() => {
                 Keyboard.dismiss()
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                 setShowDatePicker(true)
               }}
               style={[
@@ -330,6 +406,7 @@ const MainPage = () => {
                 {
                   backgroundColor: isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
                   borderColor: theme.appPrimary,
+                  borderWidth: 1,
                 }
               ]}
             >
@@ -353,81 +430,71 @@ const MainPage = () => {
             </Pressable>
           </View>
           
-          {/* Payment Method */}
+          {/* Payment Method Selection */}
           {renderSelectionButton(
-            'Payment Method *',
+            'Payment Method',
             paymentMethod?.name || null,
-            () => {
-              Keyboard.dismiss()
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-              setShowPaymentModal(true)
-            },
-            errors.paymentMethod,
-            paymentMethod ? paymentMethods.find(p => p.id === paymentMethod.id)?.icon : 'wallet'
+            () => setShowPaymentModal(true),
+            paymentMethod ? paymentMethods.find(p => p.id === paymentMethod.id)?.icon : 'wallet-outline',
+            errors.paymentMethod
           )}
           
           {/* Description */}
-          <View style={styles.fieldContainer} onLayout={(e) => {
-            // Store description field position for scrolling
-            if (e.nativeEvent.layout.y) {
-              // Field position stored for reference
-            }
-          }}>
-            <Text style={[styles.label, { color: theme.textPrimary }]}>
-              Description
-            </Text>
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, { color: theme.textPrimary }]}>Description (Optional)</Text>
             <TextInput
               style={[
-                styles.textArea,
+                styles.descriptionInput,
                 {
                   backgroundColor: isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
-                  color: theme.textPrimary,
                   borderColor: theme.appPrimary,
+                  color: theme.textPrimary,
                 }
               ]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Add a note (optional)"
-              placeholderTextColor={theme.textPrimary + '60'}
+              placeholder="Add a note about this expense..."
+              placeholderTextColor={theme.textPrimary + '40'}
               multiline
               numberOfLines={4}
-              onFocus={handleDescriptionFocus}
               textAlignVertical="top"
-              returnKeyType="done"
+              onFocus={handleDescriptionFocus}
             />
           </View>
           
           {/* Tags */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.label, { color: theme.textPrimary }]}>
-              Tags (comma separated)
-            </Text>
+            <Text style={[styles.label, { color: theme.textPrimary }]}>Tags (Optional)</Text>
             <TextInput
               style={[
-                styles.textInput,
+                styles.tagsInput,
                 {
                   backgroundColor: isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
-                  color: theme.textPrimary,
                   borderColor: theme.appPrimary,
+                  color: theme.textPrimary,
                 }
               ]}
               value={tags}
               onChangeText={setTags}
-              placeholder="e.g., urgent, business, personal"
-              placeholderTextColor={theme.textPrimary + '60'}
+              placeholder="e.g., groceries, monthly, urgent"
+              placeholderTextColor={theme.textPrimary + '40'}
             />
+            <Text style={[styles.hintText, { color: theme.textPrimary + '60' }]}>
+              Separate tags with commas
+            </Text>
           </View>
           
           {/* Submit Button */}
           <View style={styles.buttonContainer}>
             <Button
-              title={isLoading ? 'Adding...' : 'Add Expense'}
+              title={isLoading ? 'Updating...' : 'Update Expense'}
               onPress={handleSubmit}
               backgroundColor={isLoading ? theme.appPrimary + '80' : theme.appPrimary}
+              fontColor={theme.primarylight}
             />
           </View>
         </View>
-          </ScrollView>
+        </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
       
@@ -439,15 +506,13 @@ const MainPage = () => {
         onRequestClose={() => setShowCategoryModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.primary }]}>
+          <View style={[
+            styles.modalContent,
+            { backgroundColor: isDark ? theme.primaryDark : theme.primary }
+          ]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
-                Select Category
-              </Text>
-              <Pressable
-                onPress={() => setShowCategoryModal(false)}
-                style={styles.modalCloseButton}
-              >
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Select Category</Text>
+              <Pressable onPress={() => setShowCategoryModal(false)}>
                 <Ionicons name="close" size={24} color={theme.textPrimary} />
               </Pressable>
             </View>
@@ -456,9 +521,9 @@ const MainPage = () => {
                 <Pressable
                   key={cat.id}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                     setCategory({ id: cat.id, name: cat.name })
                     setShowCategoryModal(false)
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                     if (errors.category) {
                       setErrors({ ...errors, category: undefined })
                     }
@@ -468,7 +533,9 @@ const MainPage = () => {
                     {
                       backgroundColor: category?.id === cat.id
                         ? theme.appPrimary + '20'
-                        : isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
+                        : 'transparent',
+                      borderLeftColor: category?.id === cat.id ? theme.appPrimary : 'transparent',
+                      borderLeftWidth: category?.id === cat.id ? 4 : 0,
                     }
                   ]}
                 >
@@ -487,14 +554,6 @@ const MainPage = () => {
                   ]}>
                     {cat.name}
                   </Text>
-                  {category?.id === cat.id && (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={theme.appPrimary}
-                      style={{ marginLeft: 'auto' }}
-                    />
-                  )}
                 </Pressable>
               ))}
             </ScrollView>
@@ -510,15 +569,13 @@ const MainPage = () => {
         onRequestClose={() => setShowPaymentModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.primary }]}>
+          <View style={[
+            styles.modalContent,
+            { backgroundColor: isDark ? theme.primaryDark : theme.primary }
+          ]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
-                Select Payment Method
-              </Text>
-              <Pressable
-                onPress={() => setShowPaymentModal(false)}
-                style={styles.modalCloseButton}
-              >
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Select Payment Method</Text>
+              <Pressable onPress={() => setShowPaymentModal(false)}>
                 <Ionicons name="close" size={24} color={theme.textPrimary} />
               </Pressable>
             </View>
@@ -527,9 +584,9 @@ const MainPage = () => {
                 <Pressable
                   key={method.id}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                     setPaymentMethod({ id: method.id, name: method.name })
                     setShowPaymentModal(false)
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                     if (errors.paymentMethod) {
                       setErrors({ ...errors, paymentMethod: undefined })
                     }
@@ -539,7 +596,9 @@ const MainPage = () => {
                     {
                       backgroundColor: paymentMethod?.id === method.id
                         ? theme.appPrimary + '20'
-                        : isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
+                        : 'transparent',
+                      borderLeftColor: paymentMethod?.id === method.id ? theme.appPrimary : 'transparent',
+                      borderLeftWidth: paymentMethod?.id === method.id ? 4 : 0,
                     }
                   ]}
                 >
@@ -558,14 +617,6 @@ const MainPage = () => {
                   ]}>
                     {method.name}
                   </Text>
-                  {paymentMethod?.id === method.id && (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={theme.appPrimary}
-                      style={{ marginLeft: 'auto' }}
-                    />
-                  )}
                 </Pressable>
               ))}
             </ScrollView>
@@ -573,41 +624,23 @@ const MainPage = () => {
         </View>
       </Modal>
       
-      {/* Date Picker - Platform specific */}
-      {showDatePicker && Platform.OS === 'ios' && (
+      {/* Date Picker Modal (iOS) */}
+      {Platform.OS === 'ios' && showDatePicker && (
         <Modal
           visible={showDatePicker}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={handleDatePickerDone}
         >
-          <Pressable 
-            style={styles.datePickerModalOverlay}
-            onPress={handleDatePickerDone}
-          >
-            <Pressable 
-              style={[styles.datePickerModalContent, { backgroundColor: theme.primary }]}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.datePickerModalHeader}>
-                <Pressable
-                  onPress={handleDatePickerDone}
-                  style={styles.datePickerCancelButton}
-                >
-                  <Text style={[styles.datePickerButtonText, { color: theme.textPrimary }]}>
-                    Cancel
-                  </Text>
-                </Pressable>
-                <Text style={[styles.datePickerModalTitle, { color: theme.textPrimary }]}>
-                  Select Date
-                </Text>
-                <Pressable
-                  onPress={handleDatePickerDone}
-                  style={styles.datePickerDoneButton}
-                >
-                  <Text style={[styles.datePickerButtonText, { color: theme.appPrimary, fontWeight: '600' }]}>
-                    Done
-                  </Text>
+          <View style={styles.datePickerOverlay}>
+            <View style={[
+              styles.datePickerContainer,
+              { backgroundColor: isDark ? theme.primaryDark : theme.primary }
+            ]}>
+              <View style={styles.datePickerHeader}>
+                <Text style={[styles.datePickerTitle, { color: theme.textPrimary }]}>Select Date</Text>
+                <Pressable onPress={handleDatePickerDone}>
+                  <Text style={[styles.datePickerDone, { color: theme.appPrimary }]}>Done</Text>
                 </Pressable>
               </View>
               <DateTimePicker
@@ -616,14 +649,15 @@ const MainPage = () => {
                 display="spinner"
                 onChange={onDateChange}
                 maximumDate={new Date()}
-                style={styles.iosDatePicker}
+                textColor={theme.textPrimary}
               />
-            </Pressable>
-          </Pressable>
+            </View>
+          </View>
         </Modal>
       )}
       
-      {showDatePicker && Platform.OS === 'android' && (
+      {/* Date Picker (Android) */}
+      {Platform.OS === 'android' && showDatePicker && (
         <DateTimePicker
           value={date}
           mode="date"
@@ -632,67 +666,62 @@ const MainPage = () => {
           maximumDate={new Date()}
         />
       )}
-      
     </SafeAreaView>
   )
 }
 
-export default MainPage
+export default EditPage
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    padding: 20,
     paddingBottom: 300,
   },
   content: {
     flex: 1,
-    padding: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 24,
   },
-  fieldContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
   amountSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   amountLabel: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 12,
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   amountCard: {
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
+    borderRadius: 20,
+    padding: 20,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   amountInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   currencyContainer: {
     marginRight: 12,
-    paddingTop: 4,
   },
   currencySymbol: {
     fontSize: 32,
@@ -700,22 +729,27 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     flex: 1,
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 1,
-    minHeight: 50,
+    padding: 0,
   },
   amountErrorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
+    marginTop: 8,
     gap: 6,
   },
   amountErrorText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
+  },
+  fieldContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   selectionButton: {
     borderRadius: 16,
@@ -730,76 +764,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  textInput: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  textArea: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    fontSize: 16,
-    minHeight: 100,
-    maxHeight: 150,
-  },
-  datePickerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999,
-  },
-  datePickerModalContent: {
-    borderRadius: 25,
-    paddingBottom: 40,
-    width: '90%',
-    maxWidth: 400,
-    zIndex: 10000,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  datePickerModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  datePickerModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  datePickerCancelButton: {
-    padding: 8,
-  },
-  datePickerDoneButton: {
-    padding: 8,
-  },
-  datePickerButtonText: {
-    fontSize: 16,
-  },
-  datePickerWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  iosDatePicker: {
-    height: 200,
-    width: '100%',
-  },
   errorText: {
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  descriptionInput: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    minHeight: 100,
+    fontSize: 16,
+  },
+  tagsInput: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  hintText: {
+    fontSize: 12,
+    marginTop: 6,
   },
   buttonContainer: {
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 24,
+    marginBottom: 40,
   },
   modalOverlay: {
     flex: 1,
@@ -807,9 +796,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    maxHeight: '70%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
     paddingBottom: 40,
   },
   modalHeader: {
@@ -824,21 +813,44 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  modalCloseButton: {
-    padding: 4,
-  },
   modalScroll: {
-    padding: 20,
+    flex: 1,
   },
   modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingLeft: 20,
   },
   modalItemText: {
     fontSize: 16,
     flex: 1,
   },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerContainer: {
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
 })
+

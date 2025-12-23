@@ -2,5 +2,8 @@
 export const endpoints = {
 //   getUser: (id: string) => `/users/${id}`,
   getUser:'/user',
-  sigin:'/signin'
+  sigin:'/signin',
+  signup:'/signUp',
+  expenses: '/expenses',
+  expense: (id: string) => `/expenses/${id}`,
 };

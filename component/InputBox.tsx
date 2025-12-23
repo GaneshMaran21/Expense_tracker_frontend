@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, TextInput, Image, StyleSheet, Pressable } from "react-native";
-import themeConfig from "@/app/utils/color";
+import { useTheme } from "@/app/utils/color";
 import useIsDark from "@/app/utils/useIsDark";
 
 interface InputBoxProps {
@@ -12,8 +12,9 @@ interface InputBoxProps {
 }
 
 const InputBox = ({ type, value, setValue, placeholder, onFocus }: InputBoxProps) => {
-  const _useIsDarkMode = useIsDark();
-  const _useIsDark = _useIsDarkMode ? themeConfig.primaryDark : themeConfig.primarylight;
+  const theme = useTheme(); // Reactive theme hook
+  const isDark = useIsDark(); // Get dark mode state
+  const inputBackground = isDark ? theme.primaryDark : theme.primarylight;
 
   const [highlight, setHighlight] = useState<number>(0);
   const [isPassword, setIsPassword] = useState(type === "password");
@@ -29,42 +30,42 @@ const InputBox = ({ type, value, setValue, placeholder, onFocus }: InputBoxProps
   return (
     <View style={styles.container}>
       <View
-        style={[
-          styles.inputWrapper,
-          {
-            backgroundColor: _useIsDark,
-            borderColor:
-              (isUser && highlight === 1) || (isPasswordType && highlight === 2)
-                ? _useIsDarkMode
-                  ? themeConfig.primarylight
-                  : themeConfig.inputBox
-                : themeConfig.appPrimary,
-          },
-        ]}
-      >
-        {isUser && <Image source={require("../assets/icon/user.png")} />}
-        {isPasswordType && <Image source={require("../assets/icon/password.png")} />}
-
-        <TextInput
           style={[
-            styles.textInput,
+            styles.inputWrapper,
             {
-              color: _useIsDarkMode ? themeConfig.primarylight : themeConfig.appPrimary,
-              letterSpacing: 1,
-              fontWeight: "500",
+              backgroundColor: inputBackground,
+              borderColor:
+                (isUser && highlight === 1) || (isPasswordType && highlight === 2)
+                  ? isDark
+                    ? theme.primarylight
+                    : theme.inputBox
+                  : theme.appPrimary,
             },
           ]}
-          value={value}
-          onChangeText={setValue}
-          placeholder={placeholder}
-          secureTextEntry={isPasswordType && isPassword}
-          onFocus={() => {
-            setHighlight(isUser ? 1 : 2);
-            onFocus && onFocus();
-          }}
-          onBlur={() => setHighlight(0)}
-          placeholderTextColor={_useIsDarkMode ? "#555" : "#ccc"}
-        />
+        >
+          {isUser && <Image source={require("../assets/icon/user.png")} />}
+          {isPasswordType && <Image source={require("../assets/icon/password.png")} />}
+
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                color: isDark ? theme.primarylight : theme.textPrimary,
+                letterSpacing: 1,
+                fontWeight: "500",
+              },
+            ]}
+            value={value}
+            onChangeText={setValue}
+            placeholder={placeholder}
+            secureTextEntry={isPasswordType && isPassword}
+            onFocus={() => {
+              setHighlight(isUser ? 1 : 2);
+              onFocus && onFocus();
+            }}
+            onBlur={() => setHighlight(0)}
+            placeholderTextColor={isDark ? "#555" : "#999"}
+          />
 
         {isPasswordType && (
           <Pressable onPress={() => setIsPassword(!isPassword)}>
