@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Image,
   NativeScrollEvent,
@@ -6,18 +6,31 @@ import {
   ScrollView,
   Text,
   View,
+  BackHandler,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import themeConfig from "./utils/color";
-// import useIsDark from "./utils/useIsDark";
+import { useTheme } from "./utils/color";
 import LottieView from "lottie-react-native";
 import Button from "@/component/button";
 import { Dimensions } from "react-native";
 import {  useRouter } from "expo-router";
-import useIsDark from "./utils/useIsDark";
 import * as Haptics from 'expo-haptics';
 const profile = () => {
   const router = useRouter()
+  const theme = useTheme() // Reactive theme hook
+  
+  // Prevent back navigation on Android
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        // Return true to prevent default back behavior
+        return true;
+      });
+
+      return () => backHandler.remove();
+    }
+  }, []);
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
     Dimensions.get("window");
   const scrollRef = useRef<ScrollView>(null);
@@ -44,7 +57,7 @@ const profile = () => {
   return (
     <SafeAreaView
       style={{
-        backgroundColor: themeConfig.primary,
+        backgroundColor: theme.background,
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
@@ -87,7 +100,7 @@ const profile = () => {
                 style={{
                   fontSize: 25,
                   fontWeight: 700,
-                  color: themeConfig.appPrimary,
+                  color: theme.appPrimary,
                   marginTop: 10,
                 }}
               >
@@ -118,7 +131,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: themeConfig.textPrimary,
+                color: theme.textPrimary,
               }}
             >
               Note Down Expenses
@@ -128,7 +141,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: themeConfig.textPrimary,
+                color: theme.textPrimary,
               }}
             >
               Daily Note Your Expenses to help manage money
@@ -165,7 +178,7 @@ const profile = () => {
                 style={{
                   fontSize: 25,
                   fontWeight: 700,
-                  color: themeConfig.appPrimary,
+                  color: theme.appPrimary,
                   marginTop: 10,
                 }}
               >
@@ -196,7 +209,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: themeConfig.primary,
+                color: theme.textPrimary,
                 textAlign:"center"
               }}
             >
@@ -207,7 +220,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: themeConfig.textPrimary,
+                color: theme.textPrimary,
               }}
             >
              Get your notifications or alert when you do the over expenses
@@ -244,7 +257,7 @@ const profile = () => {
                 style={{
                   fontSize: 25,
                   fontWeight: 700,
-                  color: themeConfig.appPrimary,
+                  color: theme.appPrimary,
                   marginTop: 10,
                 }}
               >
@@ -275,7 +288,7 @@ const profile = () => {
               style={{
                 fontSize: 24,
                 fontWeight: 600,
-                color:themeConfig.textPrimary,
+                color:theme.textPrimary,
               }}
             >
              Easy to Track and Analize
@@ -285,7 +298,7 @@ const profile = () => {
                 fontSize: 15,
                 fontWeight: 500,
                 textAlign: "center",
-                color: themeConfig.textPrimary,
+                color: theme.textPrimary,
               }}
             >
               Tracking your expense help make sure you don't overspend

@@ -1,23 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Appearance, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
+import { useAppSettings } from "../context/AppSettingsContext";
 
-const useIsDark = ()=>{
-
-    const colorScheme = useColorScheme(); 
-    // 'light' | 'dark' | null
-      // Option 2: Event listener
-    //   const [theme, setTheme] = useState(Appearance.getColorScheme());
-    
-    //   useEffect(() => {
-    //     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-    //       setTheme(colorScheme);
-    //     });
-    
-    //     return () => subscription.remove(); // cleanup
-    //   }, []);
- 
- return colorScheme ==="dark" 
-      
+const useIsDark = () => {
+  try {
+    // Try to use context first (if available)
+    const { isDark } = useAppSettings();
+    return isDark;
+  } catch {
+    // Fallback to system theme if context not available
+    const systemColorScheme = useColorScheme();
+    return systemColorScheme === "dark";
+  }
 }
 
 export default useIsDark
