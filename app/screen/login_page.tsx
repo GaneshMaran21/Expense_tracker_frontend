@@ -37,18 +37,20 @@ const LoginPage = () => {
       router.push('/screen/HomePage')
     }
     const loginFailure = (error:any)=>{
-      console.log(error ,"what error")
+      console.error("❌ [LoginPage] Login failure:", {
+        error,
+        message: error?.message,
+        status: error?.status,
+        code: error?.code,
+        data: error?.data
+      })
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       
-      // Provide user-friendly error messages
+      // Use the error message from saga (which has detailed info)
       let errorMessage = error?.message || 'Login failed. Please try again.';
-      if (error?.message) {
-        if (error.message.includes('timeout') || error.message.includes('timed out')) {
-          errorMessage = 'Request timed out. The server is starting up. Please wait a moment and try again.';
-        } else if (error.message.includes('Network Error') || error.message.includes('network')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        }
-      }
+      
+      // Log full error for debugging
+      console.error("❌ [LoginPage] Full error object:", JSON.stringify(error, null, 2))
       
       Alert.alert('Login Failed', errorMessage, [
         {

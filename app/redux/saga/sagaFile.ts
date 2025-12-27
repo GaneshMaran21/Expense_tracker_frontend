@@ -1,7 +1,7 @@
 // app/features/user/userSaga.ts
 import { call, put, takeLatest } from "redux-saga/effects";
 import { fetchUserRequest, fetchUserSuccess, fetchUserFailure } from "../slice/userSlice";
-import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense } from "../network/network";
+import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense, createBudget, getBudgets, getBudgetsWithStatus, getBudget, getBudgetStatus, updateBudget, deleteBudget } from "../network/network";
 
 function* fetchUserWorker(action:any): Generator<any, void, any>  {
     console.log("saga works fine")
@@ -15,28 +15,75 @@ function* fetchUserWorker(action:any): Generator<any, void, any>  {
 
 function* userSignin(payload:any):Generator<any, void,any>{
     const callback = payload?.payload?.callback
+    if(!callback || !callback.success || !callback.failure){
+        console.error("❌ [Saga] Signin callback is missing or invalid")
+        return
+    }
+    
     try{
         const { user_name, password } = payload?.payload;
+        console.log("🔍 [Saga] Attempting signin for user:", user_name)
         const response = yield call (userSignIn, { user_name, password })
-        console.log(response,"signin response")
+        console.log("✅ [Saga] Signin response received:", {
+            hasData: !!response?.data,
+            hasAccessToken: !!response?.data?.accessToken,
+            status: response?.status
+        })
+        
         if(response?.data){
             callback.success(response.data)
         }
         else{
+            console.error("❌ [Saga] Signin response has no data:", response)
             callback.failure({ message: "Invalid response from server" })
         }
     }
     catch(E:any){
-        console.log(E,"signin error")
-        const errorMessage = E?.data?.message || E?.message || "Login failed. Please try again."
-        callback.failure({ message: errorMessage })
+        console.error("❌ [Saga] Signin error:", {
+            error: E,
+            message: E?.message,
+            status: E?.status,
+            code: E?.code,
+            data: E?.data,
+            response: E?.response?.status,
+            responseData: E?.response?.data
+        })
+        
+        // Extract detailed error message
+        let errorMessage = "Login failed. Please try again."
+        
+        // Check for network errors first
+        if (E?.code === 'ECONNABORTED' || E?.message?.includes('timeout')) {
+            errorMessage = 'Request timed out. Please check:\n1. Backend server is running\n2. Internet connection is stable\n3. Server URL is correct'
+        } else if (E?.code === 'ERR_NETWORK' || E?.message?.includes('Network Error')) {
+            errorMessage = 'Network error. Please check:\n1. Your internet connection\n2. Backend server is running on http://43.204.140.81:2222\n3. Device can reach the backend server'
+        } else if (E?.response?.status === 401) {
+            errorMessage = E?.response?.data?.message || 'Invalid username or password'
+        } else if (E?.response?.status === 404) {
+            errorMessage = 'Server endpoint not found. Please check backend configuration.'
+        } else if (E?.response?.status === 500) {
+            errorMessage = 'Server error. Please try again later.'
+        } else if (E?.data?.error) {
+            errorMessage = E.data.error
+        } else if (E?.data?.message) {
+            errorMessage = E.data.message
+        } else if (E?.message) {
+            errorMessage = E.message
+        }
+        
+        callback.failure({ 
+            ...E, 
+            message: errorMessage,
+            status: E?.status || E?.response?.status,
+            code: E?.code
+        })
     }
 }
 
 function* userSignup(payload:any):Generator<any, void,any>{
     const callback = payload?.payload?.callback
     if(!callback || !callback.success || !callback.failure){
-        console.error("Signup callback is missing or invalid")
+        console.error("❌ [Saga] Signup callback is missing or invalid")
         return
     }
     
@@ -49,23 +96,64 @@ function* userSignup(payload:any):Generator<any, void,any>{
             return
         }
         
+        console.log("🔍 [Saga] Attempting signup for user:", user_name, "email:", email)
         const response = yield call (userSignUp, { user_name, email, password, date_of_birth })
-        console.log(response,"signup response")
+        console.log("✅ [Saga] Signup response received:", {
+            hasData: !!response?.data,
+            hasAccessToken: !!response?.data?.accessToken,
+            status: response?.status
+        })
         
         if(response?.data){
             callback.success(response.data)
         }
         else{
+            console.error("❌ [Saga] Signup response has no data:", response)
             callback.failure({ message: "Invalid response from server" })
         }
     }
     catch(E:any){
-        console.log(E,"signup error")
-        // Backend returns error in E?.data?.error for BadRequestException
-        // Check error field first, then message, then fallback
-        const errorMessage = E?.data?.error || E?.data?.message || E?.message || "Signup failed. Please try again."
+        console.error("❌ [Saga] Signup error:", {
+            error: E,
+            message: E?.message,
+            status: E?.status,
+            code: E?.code,
+            data: E?.data,
+            response: E?.response?.status,
+            responseData: E?.response?.data
+        })
+        
+        // Extract detailed error message
+        let errorMessage = "Signup failed. Please try again."
+        
+        // Check for network errors first
+        if (E?.code === 'ECONNABORTED' || E?.message?.includes('timeout')) {
+            errorMessage = 'Request timed out. Please check:\n1. Backend server is running\n2. Internet connection is stable\n3. Server URL is correct'
+        } else if (E?.code === 'ERR_NETWORK' || E?.message?.includes('Network Error')) {
+            errorMessage = 'Network error. Please check:\n1. Your internet connection\n2. Backend server is running on http://43.204.140.81:2222\n3. Device can reach the backend server'
+        } else if (E?.response?.status === 400) {
+            errorMessage = E?.response?.data?.error || E?.response?.data?.message || 'Invalid signup data. Please check your input.'
+        } else if (E?.response?.status === 409) {
+            errorMessage = 'User already exists. Please login instead.'
+        } else if (E?.response?.status === 404) {
+            errorMessage = 'Server endpoint not found. Please check backend configuration.'
+        } else if (E?.response?.status === 500) {
+            errorMessage = 'Server error. Please try again later.'
+        } else if (E?.data?.error) {
+            errorMessage = E.data.error
+        } else if (E?.data?.message) {
+            errorMessage = E.data.message
+        } else if (E?.message) {
+            errorMessage = E.message
+        }
+        
         if(callback && callback.failure){
-            callback.failure({ message: errorMessage })
+            callback.failure({ 
+                ...E, 
+                message: errorMessage,
+                status: E?.status || E?.response?.status,
+                code: E?.code
+            })
         }
     }
 }
@@ -115,20 +203,58 @@ function* createExpenseSaga(payload: any): Generator<any, void, any> {
 function* getExpensesSaga(payload: any): Generator<any, void, any> {
   const callback = payload?.payload?.callback
   if (!callback || !callback.success || !callback.failure) {
-    console.error("Get expenses callback is missing or invalid")
+    console.error("❌ Get expenses callback is missing or invalid")
     return
   }
   
   try {
     const filters = payload?.payload?.filters || {}
+    console.log("🔍 [Saga] Fetching expenses with filters:", JSON.stringify(filters, null, 2))
+    
     const response = yield call(getExpenses, filters)
+    console.log("✅ [Saga] API Response received:", {
+      hasResponse: !!response,
+      hasData: !!response?.data,
+      dataType: Array.isArray(response?.data) ? 'array' : typeof response?.data,
+      dataLength: Array.isArray(response?.data) ? response.data.length : 'N/A',
+      status: response?.status,
+      statusText: response?.statusText
+    })
+    
     if (response?.data) {
-      callback.success(response.data)
+      console.log("✅ [Saga] Calling success callback with data:", {
+        count: Array.isArray(response.data) ? response.data.length : 1,
+        sample: Array.isArray(response.data) ? response.data[0] : response.data,
+        callbackType: typeof callback.success,
+        callbackExists: !!callback.success
+      })
+      
+      // Verify data is array before calling callback
+      if (!Array.isArray(response.data)) {
+        console.error("❌ [Saga] Response data is not an array!", {
+          type: typeof response.data,
+          data: response.data
+        })
+      }
+      
+      try {
+        callback.success(response.data)
+        console.log("✅ [Saga] Success callback executed")
+      } catch (callbackError) {
+        console.error("❌ [Saga] Error executing success callback:", callbackError)
+      }
     } else {
+      console.error("❌ [Saga] Response has no data:", response)
       callback.failure({ message: "Invalid response from server" })
     }
   } catch (E: any) {
-    console.log(E, "get expenses error")
+    console.error("❌ [Saga] get expenses error:", {
+      error: E,
+      message: E?.message,
+      status: E?.status,
+      data: E?.data,
+      code: E?.code
+    })
     // Don't auto-redirect in saga - let component handle alert and redirect
     // Just pass the error to the callback so component can show alert
     const errorMessage = E?.data?.error || E?.data?.message || E?.message || "Failed to fetch expenses. Please try again."
@@ -249,4 +375,298 @@ export function* updateExpenseSagaWatcher() {
 
 export function* deleteExpenseSagaWatcher() {
   yield takeLatest('deleteExpense', deleteExpenseSaga)
+}
+
+// Budget Sagas
+function* createBudgetSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Create budget request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Create budget callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const response = yield call(createBudget, payload?.payload?.budgetData);
+    console.log(`✅ [Saga] Create budget API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      console.log(`✅ [Saga] Calling success callback for ID ${callbackId}`);
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for create budget ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Create budget error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.message || E?.message || "Failed to create budget. Please try again.";
+    if (callback?.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* getBudgetsSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Get budgets request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Get budgets callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const filters = payload?.payload?.filters || {};
+    const response = yield call(getBudgets, filters);
+    console.log(`✅ [Saga] Get budgets API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for get budgets ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Get budgets error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.error || E?.data?.message || E?.message || "Failed to fetch budgets. Please try again.";
+    if (callback && callback.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* getBudgetsWithStatusSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Get budgets with status request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Get budgets with status callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const filters = payload?.payload?.filters || {};
+    const response = yield call(getBudgetsWithStatus, filters);
+    console.log(`✅ [Saga] Get budgets with status API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for get budgets with status ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Get budgets with status error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.error || E?.data?.message || E?.message || "Failed to fetch budgets. Please try again.";
+    if (callback && callback.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* getBudgetSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Get single budget request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Get single budget callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const id = payload?.payload?.id;
+    if (!id) {
+      console.warn(`⚠️ [Saga] Missing budget ID for get single budget ID ${callbackId}`);
+      callback.failure({ message: "Budget ID is required" });
+      return;
+    }
+    const response = yield call(getBudget, id);
+    console.log(`✅ [Saga] Get single budget API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for get single budget ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Get single budget error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.message || E?.message || "Failed to fetch budget. Please try again.";
+    if (callback && callback.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* getBudgetStatusSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Get budget status request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Get budget status callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const id = payload?.payload?.id;
+    if (!id) {
+      console.warn(`⚠️ [Saga] Missing budget ID for get budget status ID ${callbackId}`);
+      callback.failure({ message: "Budget ID is required" });
+      return;
+    }
+    const response = yield call(getBudgetStatus, id);
+    console.log(`✅ [Saga] Get budget status API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for get budget status ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Get budget status error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.message || E?.message || "Failed to fetch budget status. Please try again.";
+    if (callback && callback.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* updateBudgetSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Update budget request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Update budget callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const { id, budgetData } = payload?.payload;
+    if (!id || !budgetData) {
+      console.warn(`⚠️ [Saga] Missing ID or data for update budget ID ${callbackId}`);
+      callback.failure({ message: "Budget ID and data are required" });
+      return;
+    }
+    const response = yield call(updateBudget, id, budgetData);
+    console.log(`✅ [Saga] Update budget API response received for ID ${callbackId}:`, response);
+    if (response?.data) {
+      if (callback?.success) {
+        callback.success(response.data);
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for update budget ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Update budget error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.message || E?.message || "Failed to update budget. Please try again.";
+    if (callback?.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+function* deleteBudgetSaga(payload: any): Generator<any, void, any> {
+  const callback = payload?.payload?.callback;
+  const callbackId = payload?.payload?.callbackId || 'N/A';
+  console.log(`🔍 [Saga] Delete budget request with callback ID: ${callbackId}`, payload?.payload);
+  if (!callback || !callback.success || !callback.failure) {
+    console.error(`❌ [Saga] Delete budget callback is missing or invalid for ID ${callbackId}`);
+    return;
+  }
+
+  try {
+    const id = payload?.payload?.id;
+    if (!id) {
+      console.warn(`⚠️ [Saga] Missing budget ID for delete budget ID ${callbackId}`);
+      callback.failure({ message: "Budget ID is required" });
+      return;
+    }
+    const response = yield call(deleteBudget, id);
+    console.log(`✅ [Saga] Delete budget API response received for ID ${callbackId}:`, response);
+    if (response?.data !== undefined) {
+      if (callback?.success) {
+        callback.success(response.data || { success: true });
+        console.log(`✅ [Saga] Success callback executed for ID ${callbackId}`);
+      }
+    } else {
+      console.warn(`⚠️ [Saga] Invalid response from server for delete budget ID ${callbackId}`);
+      if (callback?.failure) {
+        callback.failure({ message: "Invalid response from server" });
+        console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+      }
+    }
+  } catch (E: any) {
+    console.error(`❌ [Saga] Delete budget error for ID ${callbackId}:`, E);
+    const errorMessage = E?.data?.message || E?.message || "Failed to delete budget. Please try again.";
+    if (callback?.failure) {
+      callback.failure({ ...E, message: errorMessage });
+      console.log(`❌ [Saga] Failure callback executed for ID ${callbackId}`);
+    }
+  }
+}
+
+export function* createBudgetSagaWatcher() {
+  yield takeLatest('createBudget', createBudgetSaga);
+}
+
+export function* getBudgetsSagaWatcher() {
+  yield takeLatest('getBudgets', getBudgetsSaga);
+}
+
+export function* getBudgetsWithStatusSagaWatcher() {
+  yield takeLatest('getBudgetsWithStatus', getBudgetsWithStatusSaga);
+}
+
+export function* getBudgetSagaWatcher() {
+  yield takeLatest('getBudget', getBudgetSaga);
+}
+
+export function* getBudgetStatusSagaWatcher() {
+  yield takeLatest('getBudgetStatus', getBudgetStatusSaga);
+}
+
+export function* updateBudgetSagaWatcher() {
+  yield takeLatest('updateBudget', updateBudgetSaga);
+}
+
+export function* deleteBudgetSagaWatcher() {
+  yield takeLatest('deleteBudget', deleteBudgetSaga);
 }

@@ -38,20 +38,20 @@ const SignUpPage = () => {
   }
 
   const signupFailure = (error:any) => {
-    console.log(error, "signup error")
+    console.error("❌ [SignUpPage] Signup failure:", {
+      error,
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      data: error?.data
+    })
     setIsLoading(false)
     
-    // Provide user-friendly error messages
-    let errorMessage = 'Failed to create account. Please try again.';
-    if (error?.message) {
-      if (error.message.includes('timeout') || error.message.includes('timed out')) {
-        errorMessage = 'Request timed out. The server is starting up. Please wait a moment and try again.';
-      } else if (error.message.includes('Network Error') || error.message.includes('network')) {
-        errorMessage = 'Network error. Please check your internet connection and try again.';
-      } else {
-        errorMessage = error.message;
-      }
-    }
+    // Use the error message from saga (which has detailed info)
+    let errorMessage = error?.message || 'Failed to create account. Please try again.';
+    
+    // Log full error for debugging
+    console.error("❌ [SignUpPage] Full error object:", JSON.stringify(error, null, 2))
     
     Alert.alert('Signup Failed', errorMessage, [
       {

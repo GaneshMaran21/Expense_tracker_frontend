@@ -1,7 +1,6 @@
 import React from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 import { useTheme } from './utils/color'
-import FastImage from "react-native-fast-image";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from "lottie-react-native";
 
