@@ -1,3 +1,4 @@
+import 'react-native-get-random-values' // Must be imported before any code that uses uuid
 import { Stack, usePathname, useRouter } from "expo-router";
 import { Provider } from "react-redux";
 import { store } from "./redux/store/store";
@@ -5,13 +6,15 @@ import { View } from "react-native";
 import Footer from "@/component/Footer";
 import { useTheme } from "./utils/color";
 import { AppSettingsProvider } from "./context/AppSettingsContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { setNavigateToProfileCallback } from "./utils/navigationUtils";
+import AnimatedSplashScreen from "./components/SplashScreen";
 
 export default function RootLayout() {
   const pathName = usePathname();
   const theme = useTheme(); // Reactive theme hook
   const router = useRouter();
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
 
   // Set navigation callback for unauthorized redirects
   useEffect(() => {
@@ -32,6 +35,11 @@ export default function RootLayout() {
     <Provider store={store}>
       <AppSettingsProvider>
         <View style={{ flex: 1, backgroundColor: theme.background }}>
+          {isSplashVisible && (
+            <AnimatedSplashScreen
+              onFinish={() => setIsSplashVisible(false)}
+            />
+          )}
         <Stack
           screenOptions={{
             headerShown: false, // Hide headers on all screens
@@ -55,6 +63,8 @@ export default function RootLayout() {
           <Stack.Screen name="screen/notification" options={{animation:"fade"}}/>
           <Stack.Screen name="screen/settings" options={{animation:"fade"}}/>
           <Stack.Screen name="screen/appearance" options={{animation:"fade"}}/>
+          <Stack.Screen name="screen/BudgetPage" options={{animation:"fade"}}/>
+          <Stack.Screen name="screen/BudgetListPage" options={{animation:"fade"}}/>
         </Stack>
 
         {shouldShowFooter ? <Footer /> : null}

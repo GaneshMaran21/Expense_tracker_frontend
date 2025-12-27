@@ -2,10 +2,13 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { redirectToProfile } from "../../utils/navigationUtils";
+import { API_BASE_URL } from "../../config/apiConfig";
+
+// Log the API base URL being used (for debugging)
+console.log('🌐 API Client initialized with baseURL:', API_BASE_URL);
 
 const apiClient = axios.create({
-  baseURL: "http://172.20.10.2:2222", // Local development
-  // baseURL: 'https://expense-tracker-backend-aqyq.onrender.com',
+  baseURL: API_BASE_URL, // Uses config from apiConfig.ts (supports HTTP/HTTPS)
   timeout: 30000, // 30 seconds timeout
   headers: {
     "x-client-type": "mobile",
@@ -52,7 +55,23 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   async (response) => {
-    console.log(response?.headers,"axios response")
+    // Log response summary for debugging
+    const isArray = Array.isArray(response.data)
+    const dataInfo = isArray 
+      ? { type: 'array', length: response.data.length }
+      : typeof response.data === 'object' && response.data !== null
+      ? { type: 'object', keys: Object.keys(response.data), hasLength: 'length' in response.data ? response.data.length : 'N/A' }
+      : { type: typeof response.data }
+    
+    console.log(`✅ API Response [${response.config.method?.toUpperCase()} ${response.config.url}]:`, {
+      status: response.status,
+      hasData: !!response.data,
+      ...dataInfo,
+      sampleData: isArray && response.data.length > 0 
+        ? { firstItem: response.data[0], hasId: !!response.data[0]?._id }
+        : response.data
+    });
+    
     const accessToken = response?.data?.accessToken;
     const refreshToken = response?.data?.refreshToken;
     const user_id = response?.data?.user_name
@@ -146,7 +165,7 @@ apiClient.interceptors.response.use(
         method: error.config?.method,
         params: error.config?.params
       });
-      errorMessage = "Request timed out after 30 seconds. Please check:\n1. Backend server is running on http://172.20.10.2:2222\n2. Device is on the same network\n3. Backend is accessible";
+      errorMessage = `Request timed out after 30 seconds. Please check:\n1. Backend server is running on ${API_BASE_URL}\n2. Device has internet connection\n3. Backend is accessible`;
     } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
       console.error('🌐 Network error:', error.message);
       console.error('🔍 Request details:', {
@@ -154,7 +173,7 @@ apiClient.interceptors.response.use(
         baseURL: error.config?.baseURL,
         method: error.config?.method
       });
-      errorMessage = "Network error. Please check:\n1. Your internet connection\n2. Backend server is running\n3. Device can reach http://172.20.10.2:2222";
+      errorMessage = `Network error. Please check:\n1. Your internet connection\n2. Backend server is running on ${API_BASE_URL}\n3. Device can reach the backend server`;
     } else {
       console.error('❌ Unknown network error:', error);
     }

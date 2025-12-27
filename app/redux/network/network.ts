@@ -41,3 +41,47 @@ export const deleteExpense = async (id: string) => {
   const response = await apiClient.delete(endpoints.expense(id))
   return response
 }
+
+// Budget API calls
+export const createBudget = async (payload: any) => {
+  const response = await apiClient.post(endpoints.budgets, payload)
+  return response
+}
+
+export const getBudgets = async (filters?: { is_active?: boolean }) => {
+  const params: any = {}
+  if (filters?.is_active !== undefined) {
+    params.is_active = filters.is_active.toString()
+  }
+  const response = await apiClient.get(endpoints.budgets, { params })
+  return response
+}
+
+export const getBudgetsWithStatus = async (filters?: { is_active?: boolean }) => {
+  const params: any = {}
+  if (filters?.is_active !== undefined) {
+    params.is_active = filters.is_active.toString()
+  }
+  const response = await apiClient.get(endpoints.budgetsWithStatus, { params })
+  return response
+}
+
+export const getBudget = async (id: string) => {
+  const response = await apiClient.get(endpoints.budget(id))
+  return response
+}
+
+export const getBudgetStatus = async (id: string) => {
+  const response = await apiClient.get(endpoints.budgetStatus(id))
+  return response
+}
+
+export const updateBudget = async (id: string, payload: any) => {
+  const response = await apiClient.patch(endpoints.budget(id), payload)
+  return response
+}
+
+export const deleteBudget = async (id: string) => {
+  const response = await apiClient.delete(endpoints.budget(id))
+  return response
+}

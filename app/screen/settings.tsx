@@ -79,6 +79,14 @@ const settings = () => {
       }
     },
     {
+      icon: 'wallet-outline' as const,
+      title: 'Budgets',
+      subtitle: 'Manage your budgets',
+      onPress: () => {
+        router.push('/screen/BudgetListPage')
+      }
+    },
+    {
       icon: 'notifications-outline' as const,
       title: 'Notifications',
       subtitle: 'Manage notifications',

@@ -133,9 +133,27 @@ const ListPage = () => {
         category_id: filters.category_id
       })
       
+      // Generate unique callback ID for debugging
+      const callbackId = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      console.log(`🔷 [ListPage] Creating callback with ID: ${callbackId}`)
+      
       const callback = {
         success: (data: Expense[]) => {
-          setExpenses(data || [])
+          console.log(`✅ [ListPage] Success callback ${callbackId} received:`, {
+            dataType: Array.isArray(data) ? 'array' : typeof data,
+            count: Array.isArray(data) ? data.length : 'N/A',
+            sample: Array.isArray(data) && data.length > 0 ? data[0] : null,
+            callbackId
+          })
+          
+          if (!Array.isArray(data)) {
+            console.error(`❌ [ListPage] Data is not an array! Type: ${typeof data}`, data)
+            setExpenses([])
+          } else {
+            setExpenses(data)
+            console.log(`✅ [ListPage] Expenses state updated, count: ${data.length}`)
+          }
+          
           setIsLoading(false)
           setIsRefreshing(false)
         },
@@ -204,6 +222,7 @@ const ListPage = () => {
         }
       }
       
+      console.log(`🚀 [ListPage] Dispatching getExpenses with callback ID: ${callbackId}`)
       dispatch({ type: 'getExpenses', payload: { filters, callback } })
     } catch (error) {
       console.error('Error fetching expenses:', error)
@@ -212,20 +231,29 @@ const ListPage = () => {
     }
   }, [selectedFilter, selectedCategory, sortBy, sortOrder, dispatch])
   
+  // Track if initial load has happened to prevent duplicate requests
+  const initialLoadRef = useRef(false)
+  
   useEffect(() => {
-    fetchExpenses()
+    if (!initialLoadRef.current) {
+      console.log("🔄 [ListPage] Initial load - fetching expenses")
+      initialLoadRef.current = true
+      fetchExpenses()
+    }
   }, [fetchExpenses])
   
   // Refresh expenses when screen comes into focus (e.g., returning from EditPage)
   useFocusEffect(
     useCallback(() => {
-      // Refresh expenses when screen is focused
-      // Use a small delay to ensure navigation is complete
-      const timer = setTimeout(() => {
-        fetchExpenses(false) // Don't show loader on focus refresh
-      }, 100)
-      
-      return () => clearTimeout(timer)
+      // Only refresh on focus if initial load has completed
+      if (initialLoadRef.current) {
+        console.log("🔄 [ListPage] Screen focused - refreshing expenses")
+        const timer = setTimeout(() => {
+          fetchExpenses(false) // Don't show loader on focus refresh
+        }, 100)
+        
+        return () => clearTimeout(timer)
+      }
     }, [fetchExpenses])
   )
   
