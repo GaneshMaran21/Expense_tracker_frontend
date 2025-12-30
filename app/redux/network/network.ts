@@ -85,3 +85,57 @@ export const deleteBudget = async (id: string) => {
   const response = await apiClient.delete(endpoints.budget(id))
   return response
 }
+
+// Notification API calls
+export const getNotifications = async (filters?: { is_read?: boolean; type?: string; limit?: number; skip?: number }) => {
+  const params: any = {}
+  if (filters?.is_read !== undefined) {
+    params.is_read = filters.is_read.toString()
+  }
+  if (filters?.type) {
+    params.type = filters.type
+  }
+  if (filters?.limit) {
+    params.limit = filters.limit.toString()
+  }
+  if (filters?.skip) {
+    params.skip = filters.skip.toString()
+  }
+  const response = await apiClient.get(endpoints.notifications, { params })
+  return response
+}
+
+export const getNotificationUnreadCount = async () => {
+  const response = await apiClient.get(endpoints.notificationUnreadCount)
+  return response
+}
+
+export const getNotification = async (id: string) => {
+  const response = await apiClient.get(endpoints.notification(id))
+  return response
+}
+
+export const markNotificationAsRead = async (id: string) => {
+  const response = await apiClient.patch(endpoints.markNotificationRead(id))
+  return response
+}
+
+export const markAllNotificationsAsRead = async () => {
+  const response = await apiClient.patch(endpoints.markAllNotificationsRead)
+  return response
+}
+
+export const deleteNotification = async (id: string) => {
+  const response = await apiClient.delete(endpoints.notification(id))
+  return response
+}
+
+export const deleteAllReadNotifications = async () => {
+  const response = await apiClient.delete(endpoints.deleteAllReadNotifications)
+  return response
+}
+
+export const createTestNotification = async (payload?: { type?: string; title?: string; message?: string }) => {
+  const response = await apiClient.post(endpoints.createTestNotification, payload || {})
+  return response
+}

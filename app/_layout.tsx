@@ -9,6 +9,21 @@ import { AppSettingsProvider } from "./context/AppSettingsContext";
 import { useEffect, useState } from "react";
 import { setNavigateToProfileCallback } from "./utils/navigationUtils";
 import AnimatedSplashScreen from "./components/SplashScreen";
+import { requestNotificationPermissions, setupNotificationListeners } from "./utils/notificationService";
+
+// Component to handle app-level initialization
+// This runs once when the app loads to fetch initial data
+function AppInitializer() {
+  useEffect(() => {
+    // Fetch notifications and unread count when app loads
+    // Using store.dispatch directly since we're initializing before Redux Provider context is available
+    // This ensures notifications are available as soon as the app loads
+    store.dispatch({ type: 'getNotifications', payload: { filters: {} } });
+    store.dispatch({ type: 'getUnreadCount' });
+  }, []);
+
+  return null;
+}
 
 export default function RootLayout() {
   const pathName = usePathname();
@@ -27,6 +42,25 @@ export default function RootLayout() {
     };
   }, [router]);
 
+  // Setup push notifications
+  useEffect(() => {
+    // Request permissions on app start
+    requestNotificationPermissions().then((granted) => {
+      if (granted) {
+        console.log('Notification permissions granted');
+      } else {
+        console.warn('Notification permissions denied');
+      }
+    });
+
+    // Setup notification listeners
+    const cleanup = setupNotificationListeners();
+
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   // footer should be hidden on certain paths (auth pages, onboarding, etc.)
   const hideFooterOn = ["/screen/login_page", "/screen/signUpPage", "/profile", "/index", "/"];
   const shouldShowFooter = !hideFooterOn.includes(pathName);
@@ -34,6 +68,7 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <AppSettingsProvider>
+        <AppInitializer />
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           {isSplashVisible && (
             <AnimatedSplashScreen

@@ -1,6 +1,6 @@
 // app/store/rootSaga.ts
 import { all, fork } from "redux-saga/effects";
-import {userSaga, userSignInSaga, userSignUpSaga, createExpenseSagaWatcher, getExpensesSagaWatcher, getExpenseSagaWatcher, updateExpenseSagaWatcher, deleteExpenseSagaWatcher, createBudgetSagaWatcher, getBudgetsSagaWatcher, getBudgetsWithStatusSagaWatcher, getBudgetSagaWatcher, getBudgetStatusSagaWatcher, updateBudgetSagaWatcher, deleteBudgetSagaWatcher} from "../saga/sagaFile";
+import {userSaga, userSignInSaga, userSignUpSaga, createExpenseSagaWatcher, getExpensesSagaWatcher, getExpenseSagaWatcher, updateExpenseSagaWatcher, deleteExpenseSagaWatcher, createBudgetSagaWatcher, getBudgetsSagaWatcher, getBudgetsWithStatusSagaWatcher, getBudgetSagaWatcher, getBudgetStatusSagaWatcher, updateBudgetSagaWatcher, deleteBudgetSagaWatcher, getNotificationsSagaWatcher, getUnreadCountSagaWatcher, markAsReadSagaWatcher, markAllAsReadSagaWatcher, deleteNotificationSagaWatcher} from "../saga/sagaFile";
 
 export default function* rootSaga() {
   yield all([
@@ -19,5 +19,10 @@ export default function* rootSaga() {
     fork(getBudgetStatusSagaWatcher),
     fork(updateBudgetSagaWatcher),
     fork(deleteBudgetSagaWatcher),
+    fork(getNotificationsSagaWatcher),
+    fork(getUnreadCountSagaWatcher),
+    fork(markAsReadSagaWatcher),
+    fork(markAllAsReadSagaWatcher),
+    fork(deleteNotificationSagaWatcher),
 ]);
 }

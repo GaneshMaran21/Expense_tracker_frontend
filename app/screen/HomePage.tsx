@@ -196,16 +196,18 @@ const HomePage = () => {
     fetchBudgets()
   }, [fetchExpenses, fetchBudgets])
 
-  // Calculate statistics
+  // Calculate statistics - memoize date calculations to prevent flickering
   const calculateStats = useCallback(() => {
     const now = new Date()
+    // Create date boundaries once and reuse
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    // Cache daysInMonth to prevent recalculation on every render
+    const daysInMonth = now.getDate()
 
     let totalExpenses = 0
     let todaySpending = 0
     let monthSpending = 0
-    const expenseDates = new Set<string>()
 
     expenses.forEach(expense => {
       const expenseDate = new Date(expense.date)
@@ -221,14 +223,10 @@ const HomePage = () => {
       // Check if expense is this month
       if (expenseDate >= monthStart) {
         monthSpending += expenseAmount
-        // Track unique dates for average calculation
-        const dateKey = expenseDate.toDateString()
-        expenseDates.add(dateKey)
       }
     })
 
     // Calculate average daily spending (this month)
-    const daysInMonth = now.getDate() // Days passed in current month
     const averageDaily = daysInMonth > 0 ? monthSpending / daysInMonth : 0
 
     return {
@@ -239,13 +237,20 @@ const HomePage = () => {
     }
   }, [expenses])
 
-  // Animate stats when they change
+  // Animate stats when they change - with proper cleanup to prevent flickering
   useEffect(() => {
     const stats = calculateStats()
     const duration = 1500
+    const timers: NodeJS.Timeout[] = []
     
     // Animate each stat value with smooth counting
     const animateValue = (start: number, end: number, callback: (val: number) => void) => {
+      // If start and end are the same, set immediately without animation
+      if (Math.abs(start - end) < 0.01) {
+        callback(end)
+        return null
+      }
+      
       const steps = 60
       const increment = (end - start) / steps
       let current = start
@@ -262,23 +267,38 @@ const HomePage = () => {
           callback(current)
         }
       }, duration / steps)
+      
+      return timer
     }
     
-    animateValue(animatedStats.totalExpenses, stats.totalExpenses, (val) => {
+    // Clean up previous animations by immediately setting to target values
+    // This prevents flickering when expenses change rapidly
+    const timer1 = animateValue(animatedStats.totalExpenses, stats.totalExpenses, (val) => {
       setAnimatedStats(prev => ({ ...prev, totalExpenses: val }))
     })
+    if (timer1) timers.push(timer1)
     
-    animateValue(animatedStats.todaySpending, stats.todaySpending, (val) => {
+    const timer2 = animateValue(animatedStats.todaySpending, stats.todaySpending, (val) => {
       setAnimatedStats(prev => ({ ...prev, todaySpending: val }))
     })
+    if (timer2) timers.push(timer2)
     
-    animateValue(animatedStats.monthSpending, stats.monthSpending, (val) => {
+    const timer3 = animateValue(animatedStats.monthSpending, stats.monthSpending, (val) => {
       setAnimatedStats(prev => ({ ...prev, monthSpending: val }))
     })
+    if (timer3) timers.push(timer3)
     
-    animateValue(animatedStats.averageDaily, stats.averageDaily, (val) => {
+    const timer4 = animateValue(animatedStats.averageDaily, stats.averageDaily, (val) => {
       setAnimatedStats(prev => ({ ...prev, averageDaily: val }))
     })
+    if (timer4) timers.push(timer4)
+    
+    // Cleanup function to cancel all animations if component unmounts or expenses change
+    return () => {
+      timers.forEach(timer => {
+        if (timer) clearInterval(timer)
+      })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses])
 
