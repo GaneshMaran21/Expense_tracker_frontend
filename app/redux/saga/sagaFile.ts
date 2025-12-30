@@ -1,7 +1,8 @@
 // app/features/user/userSaga.ts
 import { call, put, takeLatest } from "redux-saga/effects";
 import { fetchUserRequest, fetchUserSuccess, fetchUserFailure } from "../slice/userSlice";
-import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense, createBudget, getBudgets, getBudgetsWithStatus, getBudget, getBudgetStatus, updateBudget, deleteBudget } from "../network/network";
+import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense, createBudget, getBudgets, getBudgetsWithStatus, getBudget, getBudgetStatus, updateBudget, deleteBudget, getNotifications, getNotificationUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllReadNotifications } from "../network/network";
+import { getNotificationsRequest, getNotificationsSuccess, getNotificationsFailure, getUnreadCountRequest, getUnreadCountSuccess, getUnreadCountFailure, markAsReadRequest, markAsReadSuccess, markAsReadFailure, markAllAsReadRequest, markAllAsReadSuccess, markAllAsReadFailure, deleteNotificationRequest, deleteNotificationSuccess, deleteNotificationFailure } from "../slice/notificationSlice";
 
 function* fetchUserWorker(action:any): Generator<any, void, any>  {
     console.log("saga works fine")
@@ -669,4 +670,111 @@ export function* updateBudgetSagaWatcher() {
 
 export function* deleteBudgetSagaWatcher() {
   yield takeLatest('deleteBudget', deleteBudgetSaga);
+}
+
+// Notification Sagas
+function* getNotificationsSaga(action: any): Generator<any, void, any> {
+  try {
+    yield put(getNotificationsRequest(action.payload));
+    const filters = action.payload?.filters || {};
+    const response = yield call(getNotifications, filters);
+    if (response?.data) {
+      yield put(getNotificationsSuccess(response.data));
+    } else {
+      yield put(getNotificationsFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch notifications";
+    yield put(getNotificationsFailure(errorMessage));
+  }
+}
+
+function* getUnreadCountSaga(): Generator<any, void, any> {
+  try {
+    yield put(getUnreadCountRequest());
+    const response = yield call(getNotificationUnreadCount);
+    if (response?.data !== undefined) {
+      yield put(getUnreadCountSuccess(response.data));
+    } else {
+      yield put(getUnreadCountFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch unread count";
+    yield put(getUnreadCountFailure(errorMessage));
+  }
+}
+
+function* markAsReadSaga(action: any): Generator<any, void, any> {
+  try {
+    const id = action.payload?.id;
+    if (!id) {
+      yield put(markAsReadFailure("Notification ID is required"));
+      return;
+    }
+    yield put(markAsReadRequest(id));
+    const response = yield call(markNotificationAsRead, id);
+    if (response?.data) {
+      yield put(markAsReadSuccess(response.data));
+    } else {
+      yield put(markAsReadFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to mark notification as read";
+    yield put(markAsReadFailure(errorMessage));
+  }
+}
+
+function* markAllAsReadSaga(): Generator<any, void, any> {
+  try {
+    yield put(markAllAsReadRequest());
+    const response = yield call(markAllNotificationsAsRead);
+    if (response?.data !== undefined) {
+      yield put(markAllAsReadSuccess());
+    } else {
+      yield put(markAllAsReadFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to mark all notifications as read";
+    yield put(markAllAsReadFailure(errorMessage));
+  }
+}
+
+function* deleteNotificationSaga(action: any): Generator<any, void, any> {
+  try {
+    const id = action.payload?.id;
+    if (!id) {
+      yield put(deleteNotificationFailure("Notification ID is required"));
+      return;
+    }
+    yield put(deleteNotificationRequest(id));
+    const response = yield call(deleteNotification, id);
+    if (response?.data !== undefined) {
+      yield put(deleteNotificationSuccess());
+    } else {
+      yield put(deleteNotificationFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to delete notification";
+    yield put(deleteNotificationFailure(errorMessage));
+  }
+}
+
+export function* getNotificationsSagaWatcher() {
+  yield takeLatest('getNotifications', getNotificationsSaga);
+}
+
+export function* getUnreadCountSagaWatcher() {
+  yield takeLatest('getUnreadCount', getUnreadCountSaga);
+}
+
+export function* markAsReadSagaWatcher() {
+  yield takeLatest('markAsRead', markAsReadSaga);
+}
+
+export function* markAllAsReadSagaWatcher() {
+  yield takeLatest('markAllAsRead', markAllAsReadSaga);
+}
+
+export function* deleteNotificationSagaWatcher() {
+  yield takeLatest('deleteNotification', deleteNotificationSaga);
 }

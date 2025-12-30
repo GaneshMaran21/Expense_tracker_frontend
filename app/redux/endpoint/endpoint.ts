@@ -10,4 +10,11 @@ export const endpoints = {
   budget: (id: string) => `/budgets/${id}`,
   budgetStatus: (id: string) => `/budgets/${id}/status`,
   budgetsWithStatus: '/budgets/with-status',
+  notifications: '/notifications',
+  notification: (id: string) => `/notifications/${id}`,
+  notificationUnreadCount: '/notifications/unread-count',
+  markNotificationRead: (id: string) => `/notifications/${id}/read`,
+  markAllNotificationsRead: '/notifications/mark-all-read',
+  deleteAllReadNotifications: '/notifications/read/all',
+  createTestNotification: '/notifications/test',
 };

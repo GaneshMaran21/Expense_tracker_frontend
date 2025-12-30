@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/app/utils/color'
 import { useRouter, usePathname } from 'expo-router'
 import useIsDark from '@/app/utils/useIsDark'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '@/app/redux/store/store'
 // Uncomment when expo-blur is installed: npm install expo-blur
 // import { BlurView } from 'expo-blur'
 
@@ -29,6 +31,13 @@ const Footer = () => {
   const pathname = usePathname()
   const theme = useTheme() // Reactive theme hook
   const isDark = useIsDark() // Get dark mode state
+  const dispatch = useDispatch()
+  const unreadCount = useSelector((state: RootState) => state.notification.unreadCount)
+
+  // Fetch unread count on mount and when notification screen is focused
+  useEffect(() => {
+    dispatch({ type: 'getUnreadCount' })
+  }, [dispatch, pathname])
   
   // Define routes for each icon
   const routes = {
@@ -149,18 +158,27 @@ const Footer = () => {
           onPress={() => route.push(routes.notification as any)}
           style={styles.iconContainer}
         >
-          {isActive(routes.notification) ? (
-            <GradientView
-              colors={gradientColors}
-              style={styles.iconWrapper}
-            >
-              <Ionicons name="notifications" size={24} color={theme.primarylight} />
-            </GradientView>
-          ) : (
-            <View style={styles.iconWrapper}>
-              <Ionicons name="notifications-outline" size={24} color={theme.textPrimary} />
-            </View>
-          )}
+          <View style={styles.iconWrapper}>
+            {isActive(routes.notification) ? (
+              <GradientView
+                colors={gradientColors}
+                style={styles.iconWrapper}
+              >
+                <Ionicons name="notifications" size={24} color={theme.primarylight} />
+              </GradientView>
+            ) : (
+              <View style={styles.iconWrapper}>
+                <Ionicons name="notifications-outline" size={24} color={theme.textPrimary} />
+              </View>
+            )}
+            {unreadCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: '#FF3B30' }]}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </Pressable>
         
         {/* Settings Icon */}
@@ -218,5 +236,24 @@ export const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
 })  
