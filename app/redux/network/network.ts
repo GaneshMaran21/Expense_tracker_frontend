@@ -139,3 +139,53 @@ export const createTestNotification = async (payload?: { type?: string; title?: 
   const response = await apiClient.post(endpoints.createTestNotification, payload || {})
   return response
 }
+
+// Analytics API calls
+export const getAnalyticsTrends = async (period?: 'week' | 'month' | 'year') => {
+  const params: any = {}
+  if (period) {
+    params.period = period
+  }
+  const response = await apiClient.get(endpoints.analyticsTrends, { params })
+  return response
+}
+
+export const getAnalyticsCategories = async (startDate?: string, endDate?: string) => {
+  const params: any = {}
+  if (startDate) params.start_date = startDate
+  if (endDate) params.end_date = endDate
+  const response = await apiClient.get(endpoints.analyticsCategories, { params })
+  return response
+}
+
+export const getAnalyticsPaymentMethods = async (startDate?: string, endDate?: string) => {
+  const params: any = {}
+  if (startDate) params.start_date = startDate
+  if (endDate) params.end_date = endDate
+  const response = await apiClient.get(endpoints.analyticsPaymentMethods, { params })
+  return response
+}
+
+export const getAnalyticsTopCategories = async (limit?: number, startDate?: string, endDate?: string) => {
+  const params: any = {}
+  if (limit) params.limit = limit.toString()
+  if (startDate) params.start_date = startDate
+  if (endDate) params.end_date = endDate
+  const response = await apiClient.get(endpoints.analyticsTopCategories, { params })
+  return response
+}
+
+export const getAnalyticsForecast = async (period?: 'week' | 'month' | 'year') => {
+  const params: any = {}
+  if (period) params.period = period
+  const response = await apiClient.get(endpoints.analyticsForecast, { params })
+  return response
+}
+
+export const getAnalyticsSummary = async (startDate?: string, endDate?: string) => {
+  const params: any = {}
+  if (startDate) params.start_date = startDate
+  if (endDate) params.end_date = endDate
+  const response = await apiClient.get(endpoints.analyticsSummary, { params })
+  return response
+}

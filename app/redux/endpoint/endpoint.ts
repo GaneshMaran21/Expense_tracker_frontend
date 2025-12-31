@@ -17,4 +17,11 @@ export const endpoints = {
   markAllNotificationsRead: '/notifications/mark-all-read',
   deleteAllReadNotifications: '/notifications/read/all',
   createTestNotification: '/notifications/test',
+  // Analytics endpoints
+  analyticsTrends: '/analytics/trends',
+  analyticsCategories: '/analytics/categories',
+  analyticsPaymentMethods: '/analytics/payment-methods',
+  analyticsTopCategories: '/analytics/top-categories',
+  analyticsForecast: '/analytics/forecast',
+  analyticsSummary: '/analytics/summary',
 };

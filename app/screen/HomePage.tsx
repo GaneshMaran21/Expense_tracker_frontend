@@ -578,11 +578,17 @@ const HomePage = () => {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-              router.push('/screen/MainPage')
+              router.push('/screen/AnalyticsPage')
             }}
-            style={[styles.addButton, { backgroundColor: theme.appPrimary }]}
+            style={[styles.analyticsButton, {
+              backgroundColor: isDark ? theme.primaryDark + '80' : theme.primary + 'CC',
+              borderColor: isDark ? theme.primarylight + '30' : theme.textPrimary + '40',
+            }]}
           >
-            <Ionicons name="add" size={24} color={theme.primarylight} />
+            <Ionicons name="stats-chart" size={20} color={theme.appPrimary} />
+            <Text style={[styles.analyticsButtonText, { color: theme.textPrimary, fontSize: getFontSize(14) }]}>
+              Analytics
+            </Text>
           </Pressable>
         </Animated.View>
 
@@ -827,6 +833,18 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
+  },
+  analyticsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+  analyticsButtonText: {
+    fontWeight: '600',
   },
   addButton: {
     width: 44,
