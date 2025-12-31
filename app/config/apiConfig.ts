@@ -22,15 +22,17 @@ export const USE_HTTPS = false; // Change to true when HTTPS is configured
 const PROTOCOL = USE_HTTPS ? 'https' : 'http';
 const BACKEND_HOST = '43.204.140.81';
 const BACKEND_PORT = '2222';
+const RENDER_BACKEND_URL = 'https://expense-tracker-backend-aqyq.onrender.com';
 
 // Local development URL (for testing)
 const LOCAL_DEV_URL = 'http://172.20.10.2:2222';
 
-// Production/Staging URL
+// Production/Staging URL/aws
 const PRODUCTION_URL = USE_HTTPS 
   ? `${PROTOCOL}://${BACKEND_HOST}:${BACKEND_PORT}` // HTTPS with port
-  : `${PROTOCOL}://${BACKEND_HOST}:${BACKEND_PORT}`; // HTTP with port
-
+  : `${PROTOCOL}://${BACKEND_HOST}:${BACKEND_PORT}`;//  HTTP with port
+//production using render 
+// const PRODUCTION_URL = RENDER_BACKEND_URL; 
 // Select the appropriate URL based on environment setting
 // Note: For production builds (release APK/IPA), always use production URL
 const IS_PRODUCTION_BUILD = __DEV__ === false;
@@ -49,7 +51,8 @@ if (ENVIRONMENT === 'production') {
 }
 
 // Final URL: In production builds, always use production URL (safety check)
-export const API_BASE_URL = IS_PRODUCTION_BUILD ? PRODUCTION_URL : selectedUrl;
+// For local development, always use selectedUrl (which is LOCAL_DEV_URL when ENVIRONMENT='local')
+export const API_BASE_URL = IS_PRODUCTION_BUILD && ENVIRONMENT !== 'local' ? PRODUCTION_URL : selectedUrl;
 
 // Export for debugging
 export const API_CONFIG = {

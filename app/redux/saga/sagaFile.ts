@@ -1,8 +1,9 @@
 // app/features/user/userSaga.ts
 import { call, put, takeLatest } from "redux-saga/effects";
 import { fetchUserRequest, fetchUserSuccess, fetchUserFailure } from "../slice/userSlice";
-import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense, createBudget, getBudgets, getBudgetsWithStatus, getBudget, getBudgetStatus, updateBudget, deleteBudget, getNotifications, getNotificationUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllReadNotifications } from "../network/network";
+import { getUser, userSignIn, userSignUp, createExpense, getExpenses, getExpense, updateExpense, deleteExpense, createBudget, getBudgets, getBudgetsWithStatus, getBudget, getBudgetStatus, updateBudget, deleteBudget, getNotifications, getNotificationUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllReadNotifications, getAnalyticsTrends, getAnalyticsCategories, getAnalyticsPaymentMethods, getAnalyticsTopCategories, getAnalyticsForecast, getAnalyticsSummary } from "../network/network";
 import { getNotificationsRequest, getNotificationsSuccess, getNotificationsFailure, getUnreadCountRequest, getUnreadCountSuccess, getUnreadCountFailure, markAsReadRequest, markAsReadSuccess, markAsReadFailure, markAllAsReadRequest, markAllAsReadSuccess, markAllAsReadFailure, deleteNotificationRequest, deleteNotificationSuccess, deleteNotificationFailure } from "../slice/notificationSlice";
+import { getTrendsRequest, getTrendsSuccess, getTrendsFailure, getCategoriesRequest, getCategoriesSuccess, getCategoriesFailure, getPaymentMethodsRequest, getPaymentMethodsSuccess, getPaymentMethodsFailure, getTopCategoriesRequest, getTopCategoriesSuccess, getTopCategoriesFailure, getForecastRequest, getForecastSuccess, getForecastFailure, getSummaryRequest, getSummarySuccess, getSummaryFailure } from "../slice/analyticsSlice";
 
 function* fetchUserWorker(action:any): Generator<any, void, any>  {
     console.log("saga works fine")
@@ -777,4 +778,125 @@ export function* markAllAsReadSagaWatcher() {
 
 export function* deleteNotificationSagaWatcher() {
   yield takeLatest('deleteNotification', deleteNotificationSaga);
+}
+
+// Analytics Sagas
+function* getAnalyticsTrendsSaga(action: any): Generator<any, void, any> {
+  try {
+    const { period } = action.payload || {};
+    yield put(getTrendsRequest({ period }));
+    const response = yield call(getAnalyticsTrends, period);
+    if (response?.data) {
+      yield put(getTrendsSuccess(response.data));
+    } else {
+      yield put(getTrendsFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch spending trends";
+    yield put(getTrendsFailure(errorMessage));
+  }
+}
+
+function* getAnalyticsCategoriesSaga(action: any): Generator<any, void, any> {
+  try {
+    const { startDate, endDate } = action.payload || {};
+    yield put(getCategoriesRequest({ startDate, endDate }));
+    const response = yield call(getAnalyticsCategories, startDate, endDate);
+    if (response?.data) {
+      yield put(getCategoriesSuccess(response.data));
+    } else {
+      yield put(getCategoriesFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch category breakdown";
+    yield put(getCategoriesFailure(errorMessage));
+  }
+}
+
+function* getAnalyticsPaymentMethodsSaga(action: any): Generator<any, void, any> {
+  try {
+    const { startDate, endDate } = action.payload || {};
+    yield put(getPaymentMethodsRequest({ startDate, endDate }));
+    const response = yield call(getAnalyticsPaymentMethods, startDate, endDate);
+    if (response?.data) {
+      yield put(getPaymentMethodsSuccess(response.data));
+    } else {
+      yield put(getPaymentMethodsFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch payment method analysis";
+    yield put(getPaymentMethodsFailure(errorMessage));
+  }
+}
+
+function* getAnalyticsTopCategoriesSaga(action: any): Generator<any, void, any> {
+  try {
+    const { limit, startDate, endDate } = action.payload || {};
+    yield put(getTopCategoriesRequest({ limit, startDate, endDate }));
+    const response = yield call(getAnalyticsTopCategories, limit, startDate, endDate);
+    if (response?.data) {
+      yield put(getTopCategoriesSuccess(response.data));
+    } else {
+      yield put(getTopCategoriesFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch top categories";
+    yield put(getTopCategoriesFailure(errorMessage));
+  }
+}
+
+function* getAnalyticsForecastSaga(action: any): Generator<any, void, any> {
+  try {
+    const { period } = action.payload || {};
+    yield put(getForecastRequest({ period }));
+    const response = yield call(getAnalyticsForecast, period);
+    if (response?.data) {
+      yield put(getForecastSuccess(response.data));
+    } else {
+      yield put(getForecastFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch spending forecast";
+    yield put(getForecastFailure(errorMessage));
+  }
+}
+
+function* getAnalyticsSummarySaga(action: any): Generator<any, void, any> {
+  try {
+    const { startDate, endDate } = action.payload || {};
+    yield put(getSummaryRequest({ startDate, endDate }));
+    const response = yield call(getAnalyticsSummary, startDate, endDate);
+    if (response?.data) {
+      yield put(getSummarySuccess(response.data));
+    } else {
+      yield put(getSummaryFailure("Invalid response from server"));
+    }
+  } catch (error: any) {
+    const errorMessage = error?.data?.message || error?.message || "Failed to fetch analytics summary";
+    yield put(getSummaryFailure(errorMessage));
+  }
+}
+
+export function* getAnalyticsTrendsSagaWatcher() {
+  yield takeLatest('getAnalyticsTrends', getAnalyticsTrendsSaga);
+}
+
+export function* getAnalyticsCategoriesSagaWatcher() {
+  yield takeLatest('getAnalyticsCategories', getAnalyticsCategoriesSaga);
+}
+
+export function* getAnalyticsPaymentMethodsSagaWatcher() {
+  yield takeLatest('getAnalyticsPaymentMethods', getAnalyticsPaymentMethodsSaga);
+}
+
+export function* getAnalyticsTopCategoriesSagaWatcher() {
+  yield takeLatest('getAnalyticsTopCategories', getAnalyticsTopCategoriesSaga);
+}
+
+export function* getAnalyticsForecastSagaWatcher() {
+  yield takeLatest('getAnalyticsForecast', getAnalyticsForecastSaga);
+}
+
+export function* getAnalyticsSummarySagaWatcher() {
+  yield takeLatest('getAnalyticsSummary', getAnalyticsSummarySaga);
 }
